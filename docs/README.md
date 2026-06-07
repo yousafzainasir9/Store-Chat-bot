@@ -16,6 +16,7 @@ This folder is the canonical reference. Start with the index below.
 | [SETUP_NGROK_SHOPIFY.md](./SETUP_NGROK_SHOPIFY.md) | Local backend + ngrok tunnel + live Shopify webhooks. |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | System overview, components, request lifecycle, data flow, key design decisions, the offline-seam pattern. |
 | [CODE_STRUCTURE.md](./CODE_STRUCTURE.md) | Repository layout, layering, the composition root, and a **file-by-file reference** for every backend module. |
+| [LLM_FALLBACK.md](./LLM_FALLBACK.md) | Multi-model fallback chain — priority failover + 24h rate-limit cooldown. |
 | [API_REFERENCE.md](./API_REFERENCE.md) | Every HTTP endpoint: method, path, auth, request/response shapes, SSE event protocol, errors. |
 | [CONFIGURATION.md](./CONFIGURATION.md) | Every environment variable, its default, validation, and which phase/feature it controls. |
 | [DATA_MODEL.md](./DATA_MODEL.md) | Domain models, the Postgres schema, and the vector collections. |

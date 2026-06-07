@@ -52,9 +52,12 @@ Validation guards at startup:
 
 | Variable | Default | Notes |
 |---|---|---|
-| `LLM_DEFAULT_PROVIDER` | `openai` | `openai` \| `gemini`. |
+| `LLM_DEFAULT_PROVIDER` | `openai` | `openai` \| `gemini` \| `groq` (single-provider mode). |
 | `LLM_DEFAULT_MODEL` | `gpt-4o-mini` | |
-| `OPENAI_API_KEY` / `GEMINI_API_KEY` / `GROK_API_KEY` | — | |
+| `OPENAI_API_KEY` / `GEMINI_API_KEY` / `GROQ_API_KEY` / `GROK_API_KEY` | — | |
+| `LLM_CHAIN` | `[]` | JSON list of providers for **priority-ordered failover** (see [LLM_FALLBACK.md](./LLM_FALLBACK.md)). When set, overrides single-provider mode. |
+| `LLM_COOLDOWN_SECONDS` | `86400` | How long a rate-limited provider stays disabled (24h). |
+| `GROQ_API_KEY_1` / `_2` / `_3` | — | Extra keys referenced by `api_key_env` in `LLM_CHAIN`. |
 
 ## RAG / knowledge base (Phase 1)
 

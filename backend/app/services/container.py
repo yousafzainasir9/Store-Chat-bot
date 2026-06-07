@@ -25,7 +25,7 @@ from app.handoff.base import HandoffProvider
 from app.handoff.log_provider import LoggingHandoffProvider
 from app.handoff.webhook_provider import WebhookHandoffProvider
 from app.llm.base import LLMProvider
-from app.llm.factory import build_provider
+from app.llm.factory import build_provider, uses_chain
 from app.observability.logging import get_logger
 from app.rag.embeddings import Embedder, HashingEmbedder, ProviderEmbedder
 from app.rag.image_embeddings import CLIPImageEmbedder, FakeImageEmbedder, ImageEmbedder
@@ -240,7 +240,9 @@ def build_container(settings: Settings) -> Container:
         store_name=settings.store_name,
         min_confidence=settings.rag_min_confidence,
         require_verification=settings.require_identity_verification,
-        model=settings.llm_default_model if not settings.demo_mode else None,
+        model=(
+            None if (settings.demo_mode or uses_chain(settings)) else settings.llm_default_model
+        ),
     )
     job_queue = InlineJobQueue(
         {

@@ -20,20 +20,23 @@ class OpenAIProvider(LLMProvider):
         *,
         default_model: str = "gpt-4o-mini",
         embedding_model: str = "text-embedding-3-small",
+        base_url: str | None = None,
+        name: str = "openai",
     ) -> None:
         if not api_key:
-            raise ValueError("OPENAI_API_KEY is required for OpenAIProvider")
-        self.name = "openai"
+            raise ValueError("api_key is required for OpenAIProvider")
+        self.name = name
         self._default_model = default_model
         self._embedding_model = embedding_model
         self._api_key = api_key
+        self._base_url = base_url
         self._client: object | None = None
 
     def _get_client(self) -> object:
         if self._client is None:
             from openai import AsyncOpenAI  # lazy import
 
-            self._client = AsyncOpenAI(api_key=self._api_key)
+            self._client = AsyncOpenAI(api_key=self._api_key, base_url=self._base_url)
         return self._client
 
     @staticmethod

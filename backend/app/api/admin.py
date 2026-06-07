@@ -190,6 +190,16 @@ async def purge_expired(request: Request) -> dict[str, Any]:
     return {"status": "ok", "purged": purged}
 
 
+@router.get("/llm", summary="LLM fallback chain status")
+async def llm_status(request: Request) -> dict[str, Any]:
+    """Per-provider availability of the LLM fallback chain (no secrets)."""
+    provider = _c(request).provider
+    status_fn = getattr(provider, "status", None)
+    if callable(status_fn):
+        return {"chain": True, "providers": status_fn()}
+    return {"chain": False, "provider": getattr(provider, "name", "unknown")}
+
+
 @router.get("/freshness")
 async def freshness(request: Request) -> dict[str, Any]:
     p = _c(request).freshness

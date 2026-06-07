@@ -141,6 +141,7 @@ Headers: `X-Shopify-Topic`, `X-Shopify-Hmac-Sha256`. Body: raw Shopify payload.
 |---|---|---|
 | `GET` | `/admin/analytics` | Volume, deflection/handoff rate, confidence, feedback split, token cost/conversation, latency. |
 | `GET` | `/admin/freshness` | Resolved catalog freshness posture. |
+| `GET` | `/admin/llm` | LLM fallback-chain status (per-provider availability + cooldown). |
 
 ### Privacy (GDPR/CCPA)
 | Method | Path | Purpose |

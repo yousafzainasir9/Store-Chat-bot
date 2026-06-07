@@ -14,7 +14,7 @@ from enum import StrEnum
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, ValidationInfo, field_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,6 +33,23 @@ class SyncProfile(StrEnum):
     REALTIME = "realtime"
     BALANCED = "balanced"
     ECO = "eco"
+
+
+class LLMProviderConfig(BaseModel):
+    """One entry in the LLM fallback chain (see CONFIGURATION.md).
+
+    Provided as a JSON list via ``LLM_CHAIN``. Lower ``priority`` is tried first.
+    The API key is taken from ``api_key`` if set, else from the env var named by
+    ``api_key_env``, else the provider's default env key.
+    """
+
+    provider: Literal["openai", "gemini", "groq"]
+    model: str | None = None
+    name: str | None = None
+    api_key: str | None = None
+    api_key_env: str | None = None
+    base_url: str | None = None
+    priority: int = 100
 
 
 class Settings(BaseSettings):
@@ -82,6 +99,16 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     gemini_api_key: str | None = None
     grok_api_key: str | None = None
+
+    # ---- LLM fallback chain (priority-ordered failover with cooldown) ----
+    # JSON list of provider entries, e.g.:
+    #   LLM_CHAIN='[{"provider":"groq","model":"llama-3.1-8b-instant",
+    #               "api_key_env":"GROQ_API_KEY_1","priority":1}]'
+    llm_chain: list[LLMProviderConfig] = Field(default_factory=list)
+    # Cooldown when a provider hits its rate limit (default 24h = assumed refresh).
+    llm_cooldown_seconds: int = Field(default=86_400, ge=0)
+    # Optional extra API keys referenced by api_key_env in the chain.
+    groq_api_key: str | None = None
 
     # ---- Shopify (Phase 2+) ----
     shopify_store_domain: str | None = None
