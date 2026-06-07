@@ -15,6 +15,20 @@ storefront widget. Built phase by phase per [`DEVELOPMENT_PLAN.md`](./DEVELOPMEN
 
 ---
 
+## Documentation
+
+Full documentation lives in [`docs/`](./docs/) — start at
+[`docs/README.md`](./docs/README.md). It covers the
+[architecture](./docs/ARCHITECTURE.md), a file-by-file
+[code structure](./docs/CODE_STRUCTURE.md), the
+[API reference](./docs/API_REFERENCE.md),
+[configuration](./docs/CONFIGURATION.md),
+[data model](./docs/DATA_MODEL.md),
+[frontend](./docs/FRONTEND.md),
+[testing & eval](./docs/TESTING.md), plus deploy/runbook/compliance/cost guides.
+
+---
+
 ## Why these choices (design summary)
 
 The full rationale and trade-offs live in [`DEVELOPMENT_PLAN.md`](./DEVELOPMENT_PLAN.md);

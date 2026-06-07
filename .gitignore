@@ -50,3 +50,6 @@ qdrant_storage/
 postgres_data/
 redis_data/
 *.log
+
+# Vite temp files
+vite.config.ts.timestamp-*
