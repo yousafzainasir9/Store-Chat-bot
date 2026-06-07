@@ -1,0 +1,33 @@
+:root {
+  --bg: #f7f8fa; --panel: #fff; --fg: #1a1a1a; --muted: #6b7280;
+  --border: #e5e7eb; --primary: #1f6feb; --danger: #dc2626; --ok: #059669;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--fg); }
+.app { display: flex; min-height: 100vh; }
+.sidebar { width: 220px; background: var(--panel); border-right: 1px solid var(--border); padding: 16px; }
+.sidebar h1 { font-size: 16px; margin: 0 0 16px; }
+.nav button { display: block; width: 100%; text-align: left; padding: 10px 12px; border: none; background: transparent; border-radius: 8px; cursor: pointer; font: inherit; color: var(--fg); }
+.nav button.active { background: var(--primary); color: #fff; }
+.main { flex: 1; padding: 24px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.card .label { color: var(--muted); font-size: 13px; }
+.card .value { font-size: 26px; font-weight: 700; margin-top: 4px; }
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 18px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+.badge.handoff { background: #fff4e5; color: #9a6700; }
+.badge.ok { background: #e7f6ef; color: var(--ok); }
+button.btn { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 8px 12px; cursor: pointer; font: inherit; }
+button.btn.secondary { background: #eef1f4; color: var(--fg); }
+button.btn.danger { background: var(--danger); }
+input, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
+.row { display: flex; gap: 10px; align-items: center; }
+.login { max-width: 380px; margin: 12vh auto; }
+.muted { color: var(--muted); }
+.transcript .msg { padding: 8px 10px; border-radius: 8px; margin: 6px 0; }
+.transcript .user { background: #eef2ff; }
+.transcript .assistant { background: #f1f3f5; }

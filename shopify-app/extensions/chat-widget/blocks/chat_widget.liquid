@@ -1,0 +1,52 @@
+{% comment %}
+  App embed block — renders the AI support chat widget on every storefront page.
+  The merchant configures colour, position, locale, and the backend API base in
+  the theme editor; those settings flow into the widget script's data-* attributes.
+{% endcomment %}
+
+<script
+  src="{{ 'widget.js' | asset_url }}"
+  defer
+  data-store-name="{{ shop.name }}"
+  data-api-base="{{ block.settings.api_base }}"
+  data-primary="{{ block.settings.primary_color }}"
+  data-position="{{ block.settings.position }}"
+  data-locale="{{ block.settings.locale | default: request.locale.iso_code }}"
+></script>
+
+{% schema %}
+{
+  "name": "AI Support Chat",
+  "target": "body",
+  "settings": [
+    {
+      "type": "url",
+      "id": "api_base",
+      "label": "Chatbot API base URL",
+      "info": "The HTTPS URL where the chatbot backend is deployed."
+    },
+    {
+      "type": "color",
+      "id": "primary_color",
+      "label": "Brand colour",
+      "default": "#1f6feb"
+    },
+    {
+      "type": "select",
+      "id": "position",
+      "label": "Position",
+      "options": [
+        { "value": "right", "label": "Bottom right" },
+        { "value": "left", "label": "Bottom left" }
+      ],
+      "default": "right"
+    },
+    {
+      "type": "text",
+      "id": "locale",
+      "label": "Language override (e.g. en, es, fr)",
+      "info": "Leave blank to follow the storefront language."
+    }
+  ]
+}
+{% endschema %}

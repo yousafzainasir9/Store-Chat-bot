@@ -1,0 +1,1 @@
+"""Fashion product recommendations."""

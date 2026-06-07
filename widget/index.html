@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Store Chat Widget — dev preview</title>
+  </head>
+  <body style="font-family: system-ui; padding: 2rem; max-width: 720px; margin: auto">
+    <h1>Storefront preview</h1>
+    <p>The chat widget mounts from the bottom-right. This page stands in for a
+       Shopify storefront during development.</p>
+    <!-- Mirrors the script tag the Shopify app-embed block injects. -->
+    <script
+      type="module"
+      src="/src/main.tsx"
+      data-store-name="Acme Threads"
+      data-api-base="http://localhost:8000"
+      data-primary="#1f6feb"
+      data-position="right"
+      data-locale="en"
+    ></script>
+  </body>
+</html>

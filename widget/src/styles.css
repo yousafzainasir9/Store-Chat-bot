@@ -1,0 +1,75 @@
+/* All styles are scoped under .scw-root and themed via CSS variables so the
+   widget never leaks into or inherits from the host storefront theme. */
+.scw-root {
+  --scw-primary: #1f6feb;
+  --scw-bg: #ffffff;
+  --scw-fg: #1a1a1a;
+  --scw-muted: #6b7280;
+  --scw-bubble-user: var(--scw-primary);
+  --scw-radius: 14px;
+  --scw-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+  position: fixed;
+  bottom: 20px;
+  z-index: 2147483000;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  color: var(--scw-fg);
+}
+.scw-root.scw-right { right: 20px; }
+.scw-root.scw-left { left: 20px; }
+
+.scw-launcher {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--scw-primary); color: #fff; border: none;
+  border-radius: 999px; padding: 12px 18px; cursor: pointer;
+  box-shadow: var(--scw-shadow); font-size: 15px; font-weight: 600;
+}
+.scw-launcher:focus-visible { outline: 3px solid #000; outline-offset: 2px; }
+
+.scw-panel {
+  display: flex; flex-direction: column;
+  width: 380px; height: 600px; max-height: 80vh;
+  background: var(--scw-bg); border-radius: var(--scw-radius);
+  box-shadow: var(--scw-shadow); overflow: hidden;
+}
+.scw-header {
+  background: var(--scw-primary); color: #fff; padding: 14px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.scw-header h2 { margin: 0; font-size: 16px; }
+.scw-disclosure { font-size: 12px; opacity: 0.9; margin-top: 2px; }
+.scw-close { background: transparent; border: none; color: #fff; cursor: pointer; font-size: 20px; line-height: 1; }
+.scw-close:focus-visible { outline: 2px solid #fff; }
+
+.scw-log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.scw-msg { max-width: 84%; padding: 10px 12px; border-radius: 12px; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; }
+.scw-msg.user { align-self: flex-end; background: var(--scw-bubble-user); color: #fff; border-bottom-right-radius: 4px; }
+.scw-msg.assistant { align-self: flex-start; background: #f1f3f5; color: var(--scw-fg); border-bottom-left-radius: 4px; }
+.scw-msg.handoff { background: #fff4e5; border: 1px solid #ffd9a8; }
+.scw-sources { font-size: 12px; color: var(--scw-muted); margin-top: 6px; }
+.scw-products { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.scw-product { display: block; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 10px; text-decoration: none; color: inherit; }
+.scw-product b { display: block; }
+.scw-product span { color: var(--scw-muted); font-size: 13px; }
+
+.scw-typing { align-self: flex-start; color: var(--scw-muted); font-size: 13px; padding: 4px 6px; }
+.scw-typing i { display: inline-block; width: 6px; height: 6px; margin-right: 3px; border-radius: 50%; background: var(--scw-muted); animation: scw-blink 1.2s infinite both; }
+.scw-typing i:nth-child(2) { animation-delay: 0.2s; }
+.scw-typing i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes scw-blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
+
+.scw-form { display: flex; align-items: center; gap: 6px; padding: 10px; border-top: 1px solid #eee; }
+.scw-input { flex: 1; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px 12px; font: inherit; resize: none; max-height: 100px; }
+.scw-input:focus-visible { outline: 2px solid var(--scw-primary); }
+.scw-iconbtn { background: transparent; border: none; cursor: pointer; padding: 8px; border-radius: 8px; font-size: 18px; }
+.scw-iconbtn:focus-visible { outline: 2px solid var(--scw-primary); }
+.scw-sendbtn { background: var(--scw-primary); color: #fff; border: none; border-radius: 10px; padding: 10px 14px; cursor: pointer; font-weight: 600; }
+.scw-sendbtn:disabled { opacity: 0.5; cursor: default; }
+
+@media (max-width: 480px) {
+  .scw-root { bottom: 0; right: 0; left: 0; }
+  .scw-panel { width: 100vw; height: 100vh; max-height: 100vh; border-radius: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scw-typing i { animation: none; }
+}

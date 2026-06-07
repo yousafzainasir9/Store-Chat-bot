@@ -1,0 +1,8 @@
+# Theme app extension: ships the embeddable chat widget as an "app embed" block
+# the merchant toggles on in the theme editor (no theme code edits needed).
+api_version = "2025-01"
+
+[[extensions]]
+type = "theme"
+name = "AI Support Chat Widget"
+handle = "chat-widget"
