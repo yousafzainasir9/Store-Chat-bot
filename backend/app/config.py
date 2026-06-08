@@ -109,6 +109,13 @@ class Settings(BaseSettings):
     llm_cooldown_seconds: int = Field(default=86_400, ge=0)
     # Optional extra API keys referenced by api_key_env in the chain.
     groq_api_key: str | None = None
+    # Which backend produces text embeddings for retrieval:
+    #   auto     - provider embeddings if the chat provider supports them, else
+    #              the offline hashing embedder. (Groq has no embeddings API, so
+    #              a Groq-only setup transparently uses hashing.)
+    #   provider - always use the chat provider's embeddings (OpenAI/Gemini).
+    #   hashing  - always use the deterministic offline hashing embedder.
+    embedding_backend: Literal["auto", "provider", "hashing"] = "auto"
 
     # ---- Shopify (Phase 2+) ----
     shopify_store_domain: str | None = None

@@ -20,6 +20,11 @@ from pathlib import Path
 from app.billing.budget import SessionBudget
 from app.compliance.service import ComplianceService
 from app.config import Settings
+from app.core.intent_classifier import (
+    HeuristicIntentClassifier,
+    IntentClassifier,
+    LLMIntentClassifier,
+)
 from app.core.orchestrator import Orchestrator
 from app.handoff.base import HandoffProvider
 from app.handoff.log_provider import LoggingHandoffProvider
@@ -116,10 +121,28 @@ def _read_seed_documents(seed_dir: str) -> list[Document]:
     return load_seed_documents(seed_path)
 
 
+def _provider_can_embed(settings: Settings) -> bool:
+    """Whether the configured chat provider(s) expose an embeddings API.
+
+    Groq is chat-only (no embeddings endpoint), so a Groq-only deployment must
+    fall back to the offline hashing embedder for retrieval.
+    """
+    embed_capable = {"openai", "gemini"}
+    if settings.llm_chain:
+        return any(c.provider in embed_capable for c in settings.llm_chain)
+    return settings.llm_default_provider.lower() in embed_capable
+
+
 def _build_embedder(settings: Settings, provider: LLMProvider) -> Embedder:
     if settings.demo_mode:
         return HashingEmbedder(dimension=settings.embedding_dimension)
-    return ProviderEmbedder(provider, dimension=settings.embedding_dimension)
+    backend = settings.embedding_backend
+    use_provider = backend == "provider" or (backend == "auto" and _provider_can_embed(settings))
+    if use_provider:
+        return ProviderEmbedder(provider, dimension=settings.embedding_dimension)
+    # "hashing", or "auto" with a chat-only provider (e.g. Groq).
+    _log.info("embedder_offline_fallback", backend=backend, provider=settings.llm_default_provider)
+    return HashingEmbedder(dimension=settings.embedding_dimension)
 
 
 def _build_store(settings: Settings) -> VectorStore:
@@ -234,12 +257,21 @@ def build_container(settings: Settings) -> Container:
         visual_indexer = VisualIndexer(image_embedder, image_store, image_source)
         visual_search = VisualSearchService(image_embedder, image_store, order_service)
 
+    soft_model = (
+        None if (settings.demo_mode or uses_chain(settings)) else settings.llm_default_model
+    )
+    intent_classifier: IntentClassifier = (
+        HeuristicIntentClassifier()
+        if settings.demo_mode
+        else LLMIntentClassifier(provider, model=soft_model)
+    )
     orchestrator = Orchestrator(
         provider,
         retriever,
         handoff,
         order_service=order_service,
         recommender=recommender,
+        intent_classifier=intent_classifier,
         store_name=settings.store_name,
         min_confidence=settings.rag_min_confidence,
         require_verification=settings.require_identity_verification,

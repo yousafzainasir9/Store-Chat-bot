@@ -72,7 +72,9 @@ export class ChatApi {
       const { value, done } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      const frames = buffer.split("\n\n");
+      // SSE frames are separated by a blank line. Servers may use \r\n
+      // (sse_starlette) or \n line endings, so match both.
+      const frames = buffer.split(/\r\n\r\n|\n\n/);
       buffer = frames.pop() ?? "";
       for (const frame of frames) this.dispatchFrame(frame, cb);
     }
@@ -89,12 +91,15 @@ export class ChatApi {
   ): void {
     let event = "message";
     const dataLines: string[] = [];
-    for (const line of frame.split("\n")) {
+    for (const line of frame.split(/\r\n|\n/)) {
       if (line.startsWith("event:")) event = line.slice(6).trim();
-      else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+      // Per the SSE spec, strip only ONE leading space after "data:".
+      // Trimming fully would drop the inter-word spaces tokens carry.
+      else if (line.startsWith("data:"))
+        dataLines.push(line.startsWith("data: ") ? line.slice(6) : line.slice(5));
     }
     const data = dataLines.join("\n");
-    if (!data) return;
+    if (data === "") return;
     switch (event) {
       case "token":
         cb.onToken(data);

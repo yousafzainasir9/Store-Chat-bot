@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 
 from app.core.confidence import assess
 from app.core.guardrails import screen_input
+from app.core.intent_classifier import IntentClassifier
 from app.core.prompts import registry
 from app.core.router import RouteDecision, ToolIntent, route
 from app.core.verification import Identity, extract_identity
@@ -105,6 +106,7 @@ class Orchestrator:
         *,
         order_service: OrderService | None = None,
         recommender: RecommendationService | None = None,
+        intent_classifier: IntentClassifier | None = None,
         store_name: str = "our store",
         min_confidence: float = 0.15,
         require_verification: bool = True,
@@ -115,6 +117,7 @@ class Orchestrator:
         self._handoff = handoff
         self._orders = order_service
         self._recommender = recommender
+        self._intent_classifier = intent_classifier
         self._store_name = store_name
         self._min_confidence = min_confidence
         self._require_verification = require_verification
@@ -158,6 +161,22 @@ class Orchestrator:
 
         decision = self._route_with_history(history, guard.sanitized)
         intent = decision.intent
+
+        # Soft path: the deterministic rules cover high-stakes intents (orders,
+        # returns, stock) and explicit recommend/complete-look verbs. For
+        # everything they leave as NONE, an intent classifier decides whether
+        # this is a product search ("anything around $30", "a navy dress for a
+        # wedding") or a general/FAQ question — far more robust than regex.
+        if (
+            intent is ToolIntent.NONE
+            and self._recommender is not None
+            and self._intent_classifier is not None
+        ):
+            prior = [m.content for m in history if m.role is Role.USER]
+            soft = await self._intent_classifier.classify(guard.sanitized, prior)
+            if soft in _RECOMMEND_INTENTS:
+                decision = RouteDecision(intent=soft, identity=decision.identity)
+                intent = soft
 
         if self._recommender is not None and intent in _RECOMMEND_INTENTS:
             async for ev in self._recommend_flow(
