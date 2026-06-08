@@ -85,7 +85,7 @@ Startup validation will reject the deploy if `ADMIN_API_KEY` is missing or
 
 > Real semantic quality: with `DEMO_MODE=false`, install the model extras and
 > connect a cross-encoder/CLIP for best results:
-> `pip install ".[providers,vector,ml]"`. Then **re-baseline the eval and raise
+> `uv sync --extra providers --extra vector --extra ml`. Then **re-baseline the eval and raise
 > the gate thresholds**, and recalibrate `RAG_MIN_CONFIDENCE` to the new score
 > scale (the defaults are calibrated for the offline reranker).
 
@@ -100,8 +100,12 @@ docker build -t store-chat-bot .
 docker run -p 8000:8000 --env-file /path/to/prod.env store-chat-bot
 ```
 
-On a PaaS (Render/Railway/Fly), point it at `backend/Dockerfile` and set the env
-in the dashboard. Health/readiness probes: `GET /health`, `GET /ready`.
+On a PaaS (Render/Railway/Fly), point it at `backend/Dockerfile` (a uv-based
+multi-stage build) and set the env in the dashboard. Health/readiness probes:
+`GET /health`, `GET /ready`.
+
+To run without Docker: `uv sync --extra providers --extra vector --extra ml`
+then `uv run uvicorn app.main:app --host 0.0.0.0 --port 8000`.
 
 ### Database schema
 The SQL repository creates its tables on first use for convenience. For

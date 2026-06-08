@@ -4,14 +4,16 @@ import { Overview } from "./views/Overview";
 import { Conversations } from "./views/Conversations";
 import { Content } from "./views/Content";
 import { Gaps } from "./views/Gaps";
+import { WidgetSettings } from "./views/WidgetSettings";
 
-type Tab = "overview" | "conversations" | "content" | "gaps";
+type Tab = "overview" | "conversations" | "content" | "gaps" | "widget";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "conversations", label: "Conversations" },
   { id: "content", label: "Content & FAQs" },
   { id: "gaps", label: "Content gaps" },
+  { id: "widget", label: "Widget" },
 ];
 
 export function App() {
@@ -78,6 +80,7 @@ export function App() {
         {tab === "conversations" && <Conversations api={api} />}
         {tab === "content" && <Content api={api} />}
         {tab === "gaps" && <Gaps api={api} onCreated={() => setTab("content")} />}
+        {tab === "widget" && <WidgetSettings api={api} apiBase={base} />}
       </main>
     </div>
   );

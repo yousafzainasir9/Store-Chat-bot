@@ -43,7 +43,7 @@ class ContentService:
         self._repo = repo
         self._indexer = indexer
 
-    async def list(self) -> list[ContentItem]:
+    async def list_all(self) -> list[ContentItem]:
         return await self._repo.list()
 
     async def get(self, content_id: str) -> ContentItem | None:
@@ -70,6 +70,17 @@ class ContentService:
         await self._indexer.index([_to_document(item)])
         _log.info("content_created", content_id=item.id, title=title)
         return item
+
+    async def create_many(self, items: list[tuple[str, str, str]]) -> list[ContentItem]:
+        """Create + index multiple content items; returns the created items.
+
+        Each tuple is ``(title, body, category)``. Used by the FAQ-document
+        import so a whole uploaded document becomes answerable at once.
+        """
+        created: list[ContentItem] = []
+        for title, body, category in items:
+            created.append(await self.create(title=title, body=body, category=category))
+        return created
 
     async def update(
         self,

@@ -8,14 +8,21 @@ business logic lives in the services.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from pydantic import BaseModel, Field
 
 from app.api.admin_auth import require_admin
+from app.api.widget import _widget_config_dto
 from app.models.conversation import Conversation
+from app.schemas.chat import WidgetConfigUpdate
 from app.services.container import Container
+from app.services.faq_import import (
+    DocumentParseError,
+    UnsupportedDocument,
+    parse_faq_document,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -51,7 +58,7 @@ class CreateFaqFromGap(BaseModel):
 
 @router.get("/content")
 async def list_content(request: Request) -> dict[str, Any]:
-    items = await _c(request).content.list()
+    items = await _c(request).content.list_all()
     return {"items": [_content_dto(i) for i in items]}
 
 
@@ -65,6 +72,40 @@ async def create_content(request: Request, body: ContentCreate) -> dict[str, Any
         locale=body.locale,
     )
     return _content_dto(item)
+
+
+_MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+@router.post(
+    "/content/upload", status_code=status.HTTP_201_CREATED, summary="Import FAQs from a document"
+)
+async def upload_content(
+    request: Request,
+    file: Annotated[UploadFile, File(description="FAQ document (md/txt/csv/pdf/docx)")],
+) -> dict[str, Any]:
+    """Parse an uploaded FAQ document into content items and re-index them."""
+    data = await file.read()
+    if not data:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Empty file.")
+    if len(data) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "File too large (max 5 MB).")
+    try:
+        parsed = parse_faq_document(file.filename or "upload.txt", data)
+    except UnsupportedDocument as exc:
+        raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, str(exc)) from exc
+    except DocumentParseError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    if not parsed:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "No FAQ entries found in the document."
+        )
+    created = await _c(request).content.create_many([(p.title, p.body, p.category) for p in parsed])
+    return {
+        "status": "ok",
+        "imported": len(created),
+        "items": [_content_dto(i) for i in created],
+    }
 
 
 @router.patch("/content/{content_id}")
@@ -198,6 +239,27 @@ async def llm_status(request: Request) -> dict[str, Any]:
     if callable(status_fn):
         return {"chain": True, "providers": status_fn()}
     return {"chain": False, "provider": getattr(provider, "name", "unknown")}
+
+
+@router.get("/widget-config", summary="Get widget branding/behavior")
+async def get_widget_config(request: Request) -> dict[str, Any]:
+    return _widget_config_dto(request)
+
+
+@router.put("/widget-config", summary="Update widget branding/behavior")
+async def update_widget_config(request: Request, body: WidgetConfigUpdate) -> dict[str, Any]:
+    try:
+        _c(request).widget_config.update(
+            store_name=body.store_name,
+            primary_color=body.primary_color,
+            position=body.position,
+            locale=body.locale,
+            greeting=body.greeting,
+            show_image_upload=body.show_image_upload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    return _widget_config_dto(request)
 
 
 @router.get("/freshness")

@@ -148,8 +148,12 @@ Validation guards at startup:
 ## Optional Python extras
 
 ```bash
-pip install ".[dev]"                  # lint/type/test toolchain
-pip install ".[providers]"            # openai + google-generativeai
-pip install ".[vector]"               # qdrant-client
-pip install ".[ml]"                   # sentence-transformers + pillow (cross-encoder + CLIP)
+uv sync --extra dev                   # lint/type/test toolchain
+uv sync --extra providers             # openai + google-generativeai (incl. Groq via OpenAI client)
+uv sync --extra vector                # qdrant-client
+uv sync --extra ml                    # sentence-transformers + pillow (cross-encoder + CLIP)
+uv sync --extra docs                  # pypdf + python-docx (parse PDF/DOCX FAQ uploads)
+# combine: uv sync --extra dev --extra providers --extra vector --extra ml
 ```
+
+> pip still works (standard PEP 621): `pip install -e ".[dev,providers,vector,ml]"`.

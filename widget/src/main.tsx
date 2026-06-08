@@ -1,16 +1,20 @@
 import { render } from "preact";
+import { ChatApi } from "./api";
 import { readConfig } from "./config";
 import { Widget } from "./Widget";
+import type { WidgetConfig } from "./types";
 import styles from "./styles.css?inline";
 
 /**
- * Entry point. Auto-mounts the widget into an isolated container appended to
- * <body>, injects scoped styles once, and applies the merchant's theme. Safe to
- * load multiple times (it no-ops if already mounted).
+ * Entry point. Reads data-* defaults from the embedding script, then fetches the
+ * merchant-managed config from the backend (admin settings) and applies it on top,
+ * so branding/behavior can be changed in the admin without editing the embed.
  */
-function mount(): void {
+async function mount(): Promise<void> {
   if (document.getElementById("scw-root")) return;
-  const config = readConfig();
+  const base = readConfig();
+  const server = await new ChatApi(base.apiBase).fetchServerConfig();
+  const config: WidgetConfig = { ...base, ...server };
 
   const styleEl = document.createElement("style");
   styleEl.textContent = styles;
@@ -26,7 +30,7 @@ function mount(): void {
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", mount);
+  document.addEventListener("DOMContentLoaded", () => void mount());
 } else {
-  mount();
+  void mount();
 }

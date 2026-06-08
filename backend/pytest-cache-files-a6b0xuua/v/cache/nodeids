@@ -1,0 +1,14 @@
+[
+  "tests/test_faq_upload.py::test_parse_csv_with_header",
+  "tests/test_faq_upload.py::test_parse_csv_without_header",
+  "tests/test_faq_upload.py::test_parse_markdown_sections",
+  "tests/test_faq_upload.py::test_plain_text_single_item",
+  "tests/test_faq_upload.py::test_unsupported_type",
+  "tests/test_faq_upload.py::test_upload_empty_rejected",
+  "tests/test_faq_upload.py::test_upload_endpoint_creates_and_answers",
+  "tests/test_faq_upload.py::test_upload_unsupported_type_rejected",
+  "tests/test_widget_config.py::test_admin_updates_apply_to_public_config",
+  "tests/test_widget_config.py::test_invalid_color_rejected",
+  "tests/test_widget_config.py::test_invalid_position_rejected",
+  "tests/test_widget_config.py::test_public_widget_config_defaults"
+]

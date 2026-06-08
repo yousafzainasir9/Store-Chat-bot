@@ -19,7 +19,8 @@ right path, and links to three step-by-step guides:
 
 | Tool | Version | Notes |
 |---|---|---|
-| **Python** | **3.12+** | The backend targets 3.12 (uses `StrEnum`, `datetime.UTC`). |
+| **Python** | **3.12+** | The backend targets 3.12. Installed automatically by uv. |
+| **uv** | latest | Python package manager — `curl -LsSf https://astral.sh/uv/install.sh \| sh`. |
 | **Node.js** | **18+** (20/22 recommended) | For the widget and admin frontends. |
 | **Git** | any | |
 | **Docker + Docker Compose** | recent | Optional locally; the fastest way to run Postgres/Redis/Qdrant. |

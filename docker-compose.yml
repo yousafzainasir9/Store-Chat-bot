@@ -1,8 +1,20 @@
-# Local development stack: API + Postgres + Redis + Qdrant.
-# Copy .env.example -> .env first. Bring up with:  docker compose up --build
+# Local stack. Copy .env.example -> .env first.
 #
-# In production these managed services are provisioned by the PaaS; this compose
-# file is for local dev/staging parity only.
+#   Core (always):   docker compose up --build
+#     API        http://localhost:8000   (Swagger at /docs)
+#     Widget     http://localhost:8082    (serves widget.js — the embeddable asset)
+#     Admin      http://localhost:8081    (operations dashboard)
+#     + Postgres / Redis / Qdrant
+#
+#   Local demo (adds the sample storefront):
+#     docker compose --profile local up --build
+#     Sample store  http://localhost:8080  (mock store with the widget embedded)
+#
+#   ngrok / live Shopify: use the core command (no sample store) and set
+#   DEMO_MODE=false + the Shopify/provider keys in .env.
+#
+# In production the datastores are provisioned by the PaaS; this file is for
+# local dev/staging parity only.
 
 services:
   api:
@@ -10,7 +22,6 @@ services:
       context: ./backend
     env_file: .env
     environment:
-      # Override hosts so the container reaches the sibling services by name.
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/storechat
       REDIS_URL: redis://redis:6379/0
       QDRANT_URL: http://qdrant:6333
@@ -23,6 +34,40 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_started
+    restart: unless-stopped
+
+  # Always on: builds the widget and serves widget.js (the embeddable asset host).
+  widget:
+    build:
+      context: ./widget
+    ports:
+      - "8082:80"
+    restart: unless-stopped
+
+  # Always on: the operations dashboard (connect to the API + admin key in-app).
+  admin:
+    build:
+      context: ./admin
+    ports:
+      - "8081:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # Local demos only (profile "local"): a sample storefront that embeds the widget
+  # from the widget service and points it at the API. Skipped for ngrok/live.
+  sample-store:
+    profiles: ["local"]
+    build:
+      context: ./sample-store
+    environment:
+      WIDGET_JS_URL: "http://localhost:8082/widget.js"
+      WIDGET_API_BASE: "http://localhost:8000"
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+      - widget
     restart: unless-stopped
 
   postgres:

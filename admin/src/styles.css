@@ -28,6 +28,7 @@ input, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border
 .row { display: flex; gap: 10px; align-items: center; }
 .login { max-width: 380px; margin: 12vh auto; }
 .muted { color: var(--muted); }
+.error { color: var(--danger); }
 .transcript .msg { padding: 8px 10px; border-radius: 8px; margin: 6px 0; }
 .transcript .user { background: #eef2ff; }
 .transcript .assistant { background: #f1f3f5; }

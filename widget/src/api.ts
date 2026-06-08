@@ -1,4 +1,4 @@
-import type { ProductResult } from "./types";
+import type { ProductResult, WidgetConfig } from "./types";
 
 /** Thin client for the backend chat (SSE) and visual-search endpoints. */
 export class ChatApi {
@@ -14,6 +14,25 @@ export class ChatApi {
       if (res.ok) this.token = (await res.json()).token ?? null;
     } catch {
       /* token is optional; continue without it */
+    }
+  }
+
+  /** Fetch merchant-managed branding/behavior so admin settings apply live. */
+  async fetchServerConfig(): Promise<Partial<WidgetConfig>> {
+    try {
+      const res = await fetch(`${this.base}/widget/config`);
+      if (!res.ok) return {};
+      const d = await res.json();
+      return {
+        storeName: d.store_name,
+        primary: d.primary_color,
+        position: d.position,
+        locale: d.locale,
+        greeting: d.greeting,
+        showImageUpload: d.show_image_upload,
+      };
+    } catch {
+      return {};
     }
   }
 

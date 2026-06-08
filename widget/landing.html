@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Store Chat Widget — asset host</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 10vh auto; padding: 0 20px; line-height: 1.6; color: #1a1a1a; }
+    code { background: #f1f3f5; padding: 2px 6px; border-radius: 6px; }
+    pre { background: #f1f3f5; padding: 12px; border-radius: 8px; overflow-x: auto; }
+    a { color: #1f6feb; }
+    .muted { color: #6b7280; }
+  </style>
+</head>
+<body>
+  <h1>Store Chat Widget — asset host</h1>
+  <p>This service only serves the embeddable bundle. There's no app to view here —
+     it works like a CDN.</p>
+  <p>The asset is at <a href="/widget.js">/widget.js</a>.</p>
+  <h3>See the chatbot in action</h3>
+  <p>Run the sample storefront, then open
+     <a href="http://localhost:8080">http://localhost:8080</a>:</p>
+  <pre>docker compose --profile local up --build</pre>
+  <h3>Embed on a real storefront</h3>
+  <pre>&lt;script src="http://localhost:8082/widget.js"
+        data-api-base="http://localhost:8000"&gt;&lt;/script&gt;</pre>
+  <p class="muted">Admin dashboard: <a href="http://localhost:8081">http://localhost:8081</a>
+     &nbsp;·&nbsp; API docs: <a href="http://localhost:8000/docs">http://localhost:8000/docs</a></p>
+</body>
+</html>

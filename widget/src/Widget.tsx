@@ -15,7 +15,9 @@ export function Widget({ config }: Props) {
   const api = useMemo(() => new ChatApi(config.apiBase), [config.apiBase]);
 
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(
+    config.greeting ? [{ id: nextId(), role: "assistant", text: config.greeting }] : [],
+  );
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [products, setProducts] = useState<ProductResult[]>([]);
@@ -169,14 +171,16 @@ export function Widget({ config }: Props) {
           aria-hidden="true"
           tabIndex={-1}
         />
-        <button
-          class="scw-iconbtn"
-          aria-label={tr("uploadImage")}
-          title={tr("uploadImage")}
-          onClick={() => fileRef.current?.click()}
-        >
-          📷
-        </button>
+        {config.showImageUpload !== false && (
+          <button
+            class="scw-iconbtn"
+            aria-label={tr("uploadImage")}
+            title={tr("uploadImage")}
+            onClick={() => fileRef.current?.click()}
+          >
+            📷
+          </button>
+        )}
         <textarea
           class="scw-input"
           rows={1}

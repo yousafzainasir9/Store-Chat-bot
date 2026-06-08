@@ -79,23 +79,42 @@ and `admin/` (React dashboard) directories are all present.
 
 ```bash
 cp .env.example .env          # then edit as needed
-docker compose up --build
-# API:        http://localhost:8000
-# Swagger UI: http://localhost:8000/docs
-# Health:     http://localhost:8000/health
+docker compose up --build     # backend + widget + admin + datastores
+# API:    http://localhost:8000   (Swagger at /docs, health at /health)
+# Widget: http://localhost:8082   (serves widget.js — the embeddable asset)
+# Admin:  http://localhost:8081   (operations dashboard)
 ```
+
+**Core services always run:** the **backend**, the **widget** (serves `widget.js`),
+and the **admin dashboard**, plus Postgres/Redis/Qdrant.
+
+For a full local demo, add the **sample storefront** with the `local` profile:
+
+```bash
+docker compose --profile local up --build
+# Sample store: http://localhost:8080   (mock store with the chat widget embedded)
+```
+
+(For ngrok / live Shopify, use the core command — the sample store is skipped —
+and set `DEMO_MODE=false` + the Shopify/provider keys.)
 
 ## Quick start (local, without Docker)
 
-Requires **Python 3.12+**.
+Uses [**uv**](https://docs.astral.sh/uv/) for package management (Python 3.12 is
+fetched automatically by uv).
+
+> The Python project lives in **`backend/`** — run all `uv` commands from there
+> (or use `uv --directory backend …` from the repo root).
 
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install ".[dev]"
-cp ../.env.example ../.env
-uvicorn app.main:app --reload --env-file ../.env
+uv sync --extra dev                  # create .venv + install deps + toolchain
+cp ../.env.example ../.env           # demo mode by default (no keys needed)
+uv run uvicorn app.main:app --reload --env-file ../.env
 ```
+
+> Prefer pip? `pip install -e ".[dev]"` still works — the project is standard
+> PEP 621. Generate a lockfile once with `uv lock` (commit `uv.lock`).
 
 ## Ops endpoints
 
@@ -110,12 +129,13 @@ uvicorn app.main:app --reload --env-file ../.env
 
 ```bash
 cd backend
-ruff check app tests        # lint
-black app tests             # format
-mypy app                    # strict type check
-pytest                      # tests + coverage
+uv run ruff check app tests eval scripts   # lint + import sort
+uv run black app tests eval scripts        # format
+uv run mypy app                            # strict type check
+uv run pytest                              # tests + coverage
+uv run python -m eval.run_eval --k 5       # eval gate
 
-pre-commit install          # run all of the above on every commit
+uv run pre-commit install                  # run the gates on every commit
 ```
 
 CI (`.github/workflows/ci.yml`) runs lint → format-check → `mypy --strict` →
@@ -183,7 +203,7 @@ implementation, selected in one place (`app/services/container.py`):
 | Conversation store | in-memory | Postgres (`DATABASE_URL`) |
 | Handoff | logging adapter | Gorgias / Zendesk / Inbox (Phase 3) |
 
-Install real backends with the optional extras: `pip install ".[providers,vector,ml]"`.
+Install real backends with the optional extras: `uv sync --extra providers --extra vector --extra ml`.
 
 ### Evaluation
 

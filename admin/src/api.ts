@@ -53,6 +53,16 @@ export interface ContentGap {
   examples: string[];
 }
 
+export interface WidgetConfig {
+  store_name: string;
+  primary_color: string;
+  position: string;
+  locale: string;
+  greeting: string;
+  show_image_upload: boolean;
+  updated_at?: string;
+}
+
 export class AdminApi {
   constructor(
     private readonly base: string,
@@ -76,6 +86,28 @@ export class AdminApi {
   listContent = () => this.req<{ items: ContentItem[] }>("/admin/content");
   createContent = (b: Partial<ContentItem>) =>
     this.req<ContentItem>("/admin/content", { method: "POST", body: JSON.stringify(b) });
+  uploadContent = async (file: File): Promise<{ imported: number; items: ContentItem[] }> => {
+    // Multipart upload: must NOT set Content-Type (the browser adds the multipart
+    // boundary), so this bypasses the JSON `req()` helper.
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`${this.base}/admin/content/upload`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${this.token}` },
+      body: form,
+    });
+    if (!res.ok) {
+      let detail = `${res.status} ${res.statusText}`;
+      try {
+        const data = (await res.json()) as { detail?: string };
+        if (data.detail) detail = data.detail;
+      } catch {
+        /* keep status text */
+      }
+      throw new Error(detail);
+    }
+    return (await res.json()) as { imported: number; items: ContentItem[] };
+  };
   updateContent = (id: string, b: Partial<ContentItem>) =>
     this.req<ContentItem>(`/admin/content/${id}`, { method: "PATCH", body: JSON.stringify(b) });
   deleteContent = (id: string) =>
@@ -90,4 +122,7 @@ export class AdminApi {
       method: "POST",
       body: JSON.stringify({ title, body }),
     });
+  getWidgetConfig = () => this.req<WidgetConfig>("/admin/widget-config");
+  updateWidgetConfig = (b: Partial<WidgetConfig>) =>
+    this.req<WidgetConfig>("/admin/widget-config", { method: "PUT", body: JSON.stringify(b) });
 }

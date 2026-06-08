@@ -62,13 +62,17 @@ Install the real-backend extras:
 
 ```bash
 cd backend
-source .venv/bin/activate
-pip install -e ".[dev,providers,vector]"      # add ,ml for cross-encoder/CLIP
+uv sync --extra dev --extra providers --extra vector   # add --extra ml for cross-encoder/CLIP
 ```
 
 ---
 
 ## 3. Start local services (Qdrant/Postgres/Redis)
+
+> Use the **core** compose command here — `docker compose up` (backend + widget +
+> admin + datastores). Do **not** add `--profile local`: the sample storefront is
+> for offline demos and isn't needed when testing against a real Shopify store.
+
 
 If you set `QDRANT_URL`/`DATABASE_URL`/`REDIS_URL` above, bring them up:
 
@@ -84,7 +88,7 @@ docker compose up -d postgres redis qdrant
 
 ```bash
 cd backend
-uvicorn app.main:app --reload --env-file ../.env --host 0.0.0.0 --port 8000
+uv run uvicorn app.main:app --reload --env-file ../.env --host 0.0.0.0 --port 8000
 curl http://localhost:8000/health      # "demo_mode": false
 ```
 
@@ -123,7 +127,7 @@ indexed (via a management command/REPL):
 
 ```bash
 cd backend
-python - <<'PY'
+uv run python - <<'PY'
 import asyncio
 from app.config import get_settings
 from app.services.container import build_container

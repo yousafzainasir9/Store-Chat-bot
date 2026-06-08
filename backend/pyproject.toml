@@ -53,6 +53,11 @@ ml = [
     "sentence-transformers>=3.3,<4.0",
     "pillow>=10.0,<12.0",
 ]
+# Optional FAQ document parsing (PDF / DOCX uploads).
+docs = [
+    "pypdf>=4.0,<6.0",
+    "python-docx>=1.1,<2.0",
+]
 
 [build-system]
 requires = ["hatchling"]

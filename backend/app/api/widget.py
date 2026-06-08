@@ -70,3 +70,22 @@ def enforce_widget_token(request: Request) -> None:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing or invalid widget session token.",
         )
+
+
+def _widget_config_dto(request: Request) -> dict[str, object]:
+    store = request.app.state.container.widget_config.get()
+    return {
+        "store_name": store.store_name,
+        "primary_color": store.primary_color,
+        "position": store.position,
+        "locale": store.locale,
+        "greeting": store.greeting,
+        "show_image_upload": store.show_image_upload,
+        "updated_at": store.updated_at.isoformat(),
+    }
+
+
+@router.get("/widget/config", summary="Public widget branding/behavior config")
+async def widget_config(request: Request) -> dict[str, object]:
+    """Served to the embedded widget so merchant settings apply live."""
+    return _widget_config_dto(request)

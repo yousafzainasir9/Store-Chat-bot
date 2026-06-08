@@ -94,6 +94,11 @@ curl -X POST $BASE/search/visual -F image=@jacket.jpg -F category=Jacket -F budg
 
 ## Widget session
 
+### `GET /widget/config`
+Public widget branding/behavior (store name, colour, position, locale, greeting,
+image-upload toggle) — the embedded widget fetches this so admin changes apply
+live. No secrets.
+
 ### `POST /widget/session`
 Mint a short-lived signed token. Returns `{ token, expires_at, required }`.
 When `WIDGET_SECRET` is unset, returns `{token: null, required: false}` (no-op).
@@ -120,6 +125,7 @@ Headers: `X-Shopify-Topic`, `X-Shopify-Hmac-Sha256`. Body: raw Shopify payload.
 |---|---|---|
 | `GET` | `/admin/content` | List editable FAQs/policies. |
 | `POST` | `/admin/content` | Create (`title`, `body`, `category`, `source`, `locale`) → **re-indexes immediately**. `201`. |
+| `POST` | `/admin/content/upload` | Import FAQs from an uploaded document (`multipart/form-data`, field `file`; `.md`/`.txt`/`.csv`/`.pdf`/`.docx`, ≤ 5 MB) → parses + re-indexes each entry. Returns `{status, imported, items}`. `201`. Errors: `400` empty, `413` too large, `415` unsupported type, `422` parse error / no entries. |
 | `PATCH` | `/admin/content/{id}` | Update title/body/category → re-indexes. |
 | `DELETE` | `/admin/content/{id}` | Delete + de-index. |
 
@@ -142,6 +148,8 @@ Headers: `X-Shopify-Topic`, `X-Shopify-Hmac-Sha256`. Body: raw Shopify payload.
 | `GET` | `/admin/analytics` | Volume, deflection/handoff rate, confidence, feedback split, token cost/conversation, latency. |
 | `GET` | `/admin/freshness` | Resolved catalog freshness posture. |
 | `GET` | `/admin/llm` | LLM fallback-chain status (per-provider availability + cooldown). |
+| `GET` | `/admin/widget-config` | Get widget branding/behavior. |
+| `PUT` | `/admin/widget-config` | Update widget branding/behavior (`store_name`, `primary_color`, `position`, `locale`, `greeting`, `show_image_upload`). |
 
 ### Privacy (GDPR/CCPA)
 | Method | Path | Purpose |

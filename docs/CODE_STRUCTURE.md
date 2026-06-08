@@ -202,8 +202,10 @@ synthetic catalog + images). Swapping any backend is a one-line change here.
 | `eval/dataset.jsonl` | 106 labeled Q/A pairs across all intents. |
 | `scripts/loadtest.py` | Async load test reporting latency percentiles vs. the p95 SLO. |
 | `seed/*.md` | Seed knowledge base: `faqs.md`, `shipping_returns.md`, `size_guide.md`. |
-| `Dockerfile` | Multi-stage, non-root runtime image. |
-| `pyproject.toml` | Dependencies, optional extras (`dev`/`providers`/`vector`/`ml`), and tool config (ruff/black/mypy/pytest). |
+| `Dockerfile` | Multi-stage **uv**-based, non-root runtime image. |
+| `pyproject.toml` | Dependencies, optional extras (`dev`/`providers`/`vector`/`ml`), and tool config (ruff/black/mypy/pytest). Managed with **uv** (`uv.lock` for reproducible installs). |
+| `.python-version` | Pins Python 3.12 for uv. |
+| `README.md` | Backend quick start. |
 
 ## 4. Coding standards
 

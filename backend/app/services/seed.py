@@ -47,6 +47,16 @@ def _split_sections(body: str) -> list[tuple[str, str]]:
     return [(t, c) for t, c in sections if c]
 
 
+def parse_markdown_sections(text: str) -> list[tuple[str, str]]:
+    """Parse markdown into (title, content) sections (front-matter stripped).
+
+    Reused by the admin FAQ-document importer so uploaded markdown is split the
+    same way as the seed knowledge base.
+    """
+    _, body = _parse_front_matter(text)
+    return _split_sections(body)
+
+
 def load_seed_documents(seed_dir: Path) -> list[Document]:
     """Read every ``.md`` file under ``seed_dir`` into granular documents."""
     documents: list[Document] = []

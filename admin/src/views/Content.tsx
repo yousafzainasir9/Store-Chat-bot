@@ -6,6 +6,7 @@ export function Content({ api }: { api: AdminApi }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const refresh = () =>
     api.listContent().then((r) => setItems(r.items)).catch(() => setItems([]));
@@ -28,6 +29,21 @@ export function Content({ api }: { api: AdminApi }) {
     }
   };
 
+  const upload = async (file: File | null | undefined) => {
+    if (!file) return;
+    setBusy(true);
+    setUploadMsg(null);
+    try {
+      const r = await api.uploadContent(file);
+      setUploadMsg({ ok: true, text: `Imported ${r.imported} FAQ${r.imported === 1 ? "" : "s"}.` });
+      await refresh();
+    } catch (err) {
+      setUploadMsg({ ok: false, text: err instanceof Error ? err.message : "Upload failed." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const remove = async (id: string) => {
     await api.deleteContent(id);
     await refresh();
@@ -44,6 +60,29 @@ export function Content({ api }: { api: AdminApi }) {
         <textarea rows={4} placeholder="Answer / body" value={body} style="margin-top:8px"
           onInput={(e) => setBody((e.target as HTMLTextAreaElement).value)} />
         <p><button class="btn" disabled={busy} onClick={() => void create()}>Add FAQ</button></p>
+      </div>
+      <div class="panel">
+        <h3>Upload FAQ document</h3>
+        <p class="muted">
+          Import many FAQs at once from a <code>.md</code>, <code>.txt</code>, <code>.csv</code>,
+          <code>.pdf</code>, or <code>.docx</code> file. Each entry is indexed immediately.
+        </p>
+        <input
+          type="file"
+          accept=".md,.markdown,.txt,.csv,.pdf,.docx"
+          disabled={busy}
+          onChange={(e) => {
+            const input = e.target as HTMLInputElement;
+            void upload(input.files?.[0]).then(() => {
+              input.value = "";
+            });
+          }}
+        />
+        {uploadMsg && (
+          <p class={uploadMsg.ok ? "muted" : "error"} style="margin-top:8px">
+            {uploadMsg.text}
+          </p>
+        )}
       </div>
       <div class="panel">
         <table>

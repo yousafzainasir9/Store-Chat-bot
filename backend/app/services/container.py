@@ -44,6 +44,7 @@ from app.services.content_service import ContentService
 from app.services.gaps import ContentGapService
 from app.services.jobs import InlineJobQueue, JobQueue
 from app.services.seed import load_seed_documents
+from app.services.widget_config import WidgetConfigStore
 from app.shopify.catalog_sync import CatalogSyncService
 from app.shopify.client import ShopifyClient
 from app.shopify.fake import FakeShopifyClient
@@ -78,6 +79,7 @@ class Container:
     gaps: ContentGapService
     analytics: AnalyticsService
     compliance: ComplianceService
+    widget_config: WidgetConfigStore
     budget: SessionBudget
     visual_search: VisualSearchService | None
     visual_indexer: VisualIndexer | None
@@ -217,6 +219,7 @@ def build_container(settings: Settings) -> Container:
     gaps = ContentGapService(repository)
     analytics = AnalyticsService(repository)
     compliance = ComplianceService(repository, retention_days=settings.data_retention_days)
+    widget_config = WidgetConfigStore.from_settings(settings)
     budget = SessionBudget(
         budget=settings.per_session_token_budget,
         anomaly_threshold=settings.cost_anomaly_session_threshold,
@@ -270,6 +273,7 @@ def build_container(settings: Settings) -> Container:
         gaps=gaps,
         analytics=analytics,
         compliance=compliance,
+        widget_config=widget_config,
         budget=budget,
         visual_search=visual_search,
         visual_indexer=visual_indexer,

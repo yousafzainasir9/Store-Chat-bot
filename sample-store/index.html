@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Acme Threads — sample storefront</title>
+    <style>
+      :root { --ink:#1a1a1a; --muted:#6b7280; --line:#ececec; --brand:#1f6feb; }
+      * { box-sizing: border-box; }
+      body { margin:0; font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink); }
+      header { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; border-bottom:1px solid var(--line); }
+      header .logo { font-weight:800; letter-spacing:.5px; }
+      header nav a { margin-left:18px; color:var(--muted); text-decoration:none; font-size:14px; }
+      .hero { padding:48px 24px; text-align:center; background:#fafafa; border-bottom:1px solid var(--line); }
+      .hero h1 { margin:0 0 8px; font-size:30px; }
+      .hero p { margin:0; color:var(--muted); }
+      .wrap { max-width:1040px; margin:0 auto; padding:28px 24px; }
+      .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:20px; }
+      .card { border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+      .card .ph { height:240px; background:linear-gradient(135deg,#eef2ff,#f6f7fb); display:flex; align-items:center; justify-content:center; color:#b6bcd0; font-size:13px; }
+      .card .meta { padding:12px 14px; }
+      .card .meta b { display:block; font-size:15px; }
+      .card .meta span { color:var(--muted); font-size:14px; }
+      .note { max-width:1040px; margin:0 auto 28px; padding:14px 16px; background:#fff8e6; border:1px solid #ffe2a8; border-radius:10px; color:#8a6d3b; font-size:14px; }
+      footer { padding:28px 24px; color:var(--muted); font-size:13px; text-align:center; border-top:1px solid var(--line); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo">ACME THREADS</div>
+      <nav><a href="#">New in</a><a href="#">Women</a><a href="#">Men</a><a href="#">Sale</a></nav>
+    </header>
+
+    <section class="hero">
+      <h1>Sample storefront</h1>
+      <p>This page stands in for a Shopify storefront so you can try the chat widget locally.</p>
+    </section>
+
+    <div class="note">
+      The chat bubble at the bottom-right is the embeddable widget, loaded from the
+      widget service exactly like the Shopify app-embed block would load it —
+      pointed at the local API. Try: <em>“How long does shipping take?”</em>,
+      <em>“recommend a dress under $100”</em>, or upload a photo with the 📷 button.
+    </div>
+
+    <main class="wrap">
+      <div class="grid" id="grid"></div>
+    </main>
+
+    <footer>Acme Threads · sample storefront for the AI support widget</footer>
+
+    <script>
+      const items = [
+        ["Black Cotton Dress", "$59"], ["Navy Linen Jacket", "$69"],
+        ["Olive Wool Sweater", "$64"], ["White Poplin Shirt", "$54"],
+        ["Burgundy Knit Skirt", "$49"], ["Beige Slim Jeans", "$59"],
+        ["Charcoal Overshirt", "$74"], ["Sand Linen Dress", "$64"],
+      ];
+      document.getElementById("grid").innerHTML = items.map(
+        ([t, p]) => `<div class="card"><div class="ph">product image</div>
+          <div class="meta"><b>${t}</b><span>${p}</span></div></div>`
+      ).join("");
+    </script>
+
+    <!-- The embeddable widget, loaded from the widget asset host, the same way the
+         Shopify app-embed block does. Both URLs are substituted at container start. -->
+    <script
+      src="__WIDGET_JS_URL__"
+      defer
+      data-store-name="Acme Threads"
+      data-api-base="__WIDGET_API_BASE__"
+      data-primary="#1f6feb"
+      data-position="right"
+      data-locale="en"
+    ></script>
+  </body>
+</html>

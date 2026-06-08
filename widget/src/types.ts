@@ -23,4 +23,8 @@ export interface WidgetConfig {
   primary: string;
   position: "left" | "right";
   locale: string;
+  /** Optional opening assistant message (managed in the admin). */
+  greeting?: string;
+  /** Whether the image-upload (visual search) button is shown. */
+  showImageUpload?: boolean;
 }

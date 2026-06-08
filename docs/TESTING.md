@@ -37,7 +37,7 @@ off when exhausted.
 
 ```bash
 cd backend
-python -m eval.run_eval --k 5
+uv run python -m eval.run_eval --k 5
 ```
 
 - **Dataset**: `eval/dataset.jsonl` — 106 pairs across FAQ, shipping, returns,
@@ -66,7 +66,7 @@ A prompt change that regresses quality fails CI here, so it can't deploy
 ## 3. Load test
 
 ```bash
-python -m scripts.loadtest --url http://localhost:8000 --concurrency 20 --requests 500
+uv run python -m scripts.loadtest --url http://localhost:8000 --concurrency 20 --requests 500
 ```
 Drives concurrent `/chat` requests and reports throughput + p50/p95/p99 latency,
 compared against the SLO (p95 first-token < 2.5s).
@@ -75,15 +75,15 @@ compared against the SLO (p95 first-token < 2.5s).
 
 ```bash
 cd backend
-ruff check app tests eval scripts     # lint + import sort
-black --check app tests eval scripts  # formatting
-mypy app                              # strict typing
-pytest                                # tests
-python -m eval.run_eval --k 5         # eval gate
-pre-commit install                    # run the above on commit (+ gitleaks)
+uv run ruff check app tests eval scripts     # lint + import sort
+uv run black --check app tests eval scripts  # formatting
+uv run mypy app                              # strict typing
+uv run pytest                                # tests
+uv run python -m eval.run_eval --k 5         # eval gate
+uv run pre-commit install                    # run the above on commit (+ gitleaks)
 ```
 
 CI (`.github/workflows/ci.yml`) runs, on every push and PR:
-**lint → format-check → `mypy --strict` → tests → eval gate**, plus **gitleaks**
-secret scanning. Frontends are built and type-checked separately
+**lint → format-check → `mypy --strict` → tests → eval gate** (all via `uv run`),
+plus **gitleaks** secret scanning. Frontends are built and type-checked separately
 (`npm run build` in `widget/` and `admin/`).

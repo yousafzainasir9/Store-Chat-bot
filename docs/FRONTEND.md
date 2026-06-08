@@ -42,6 +42,9 @@ so the same bundle works for any deployment.
 - Keeps in-session history and sends prior turns as context.
 - Image upload calls `/search/visual` and renders product cards.
 - Shows citations under grounded answers; styles handoff messages distinctly.
+- On load, fetches **`GET /widget/config`** and applies the merchant's admin
+  settings (branding, greeting, photo-search toggle) over the `data-*` defaults,
+  so changes made in the admin apply without re-pasting the embed.
 - Always shows the AI-disclosure notice.
 - Accessibility: dialog/log ARIA roles, `aria-live` transcript, Enter-to-send,
   Escape-to-close, visible focus rings; full-screen panel on mobile.
@@ -51,6 +54,13 @@ so the same bundle works for any deployment.
 cd widget && npm install && npm run build      # tsc --noEmit, then vite build
 cp dist/widget.js ../shopify-app/extensions/chat-widget/assets/widget.js
 ```
+
+### Sample storefront (local Docker)
+
+`docker compose up` builds the widget and serves it on a **sample storefront** at
+http://localhost:8080 (`widget/Dockerfile` + `widget/sample/index.html`), wired to
+the local API via `WIDGET_API_BASE`. This mirrors how the Shopify app-embed block
+loads the widget, so you can demo the bot end to end without a real store.
 
 ## 2. Admin dashboard (`admin/`)
 
@@ -66,8 +76,9 @@ connect screen and stored in `localStorage`.
 | `src/api.ts` | `AdminApi` — typed client for analytics/content/conversations/gaps; bearer auth. |
 | `src/views/Overview.tsx` | Metric cards (conversations, deflection, handoff rate, confidence, cost/conversation, p95) + feedback bar chart. |
 | `src/views/Conversations.tsx` | Searchable conversation list + transcript view. |
-| `src/views/Content.tsx` | Create/delete FAQs (re-indexes instantly). |
+| `src/views/Content.tsx` | Create/delete FAQs and **bulk-upload an FAQ document** (`.md`/`.txt`/`.csv`/`.pdf`/`.docx`) — all re-index instantly. |
 | `src/views/Gaps.tsx` | Content gaps with one-click "create FAQ". |
+| `src/views/WidgetSettings.tsx` | **Widget** tab — edit branding/behavior (store name, colour, position, locale, greeting, photo-search toggle) and copy a ready-to-paste embed snippet. |
 | `src/styles.css` | Dashboard styling. |
 | `vite.config.ts` | Aliases `react`/`react-dom` → `preact/compat`. |
 

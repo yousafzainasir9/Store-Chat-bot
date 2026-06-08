@@ -36,3 +36,14 @@ class FeedbackRequest(BaseModel):
     message_id: str = Field(max_length=64)
     value: FeedbackValue
     comment: str | None = Field(default=None, max_length=2000)
+
+
+class WidgetConfigUpdate(BaseModel):
+    """Editable widget branding/behavior (admin)."""
+
+    store_name: str | None = Field(default=None, min_length=1, max_length=120)
+    primary_color: str | None = Field(default=None, pattern=r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+    position: str | None = Field(default=None, pattern="^(left|right)$")
+    locale: str | None = Field(default=None, max_length=10)
+    greeting: str | None = Field(default=None, max_length=300)
+    show_image_upload: bool | None = None
