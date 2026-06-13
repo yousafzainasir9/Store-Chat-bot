@@ -20,6 +20,7 @@ Validation guards at startup:
 | `APP_NAME` | `store-chat-bot` | |
 | `APP_VERSION` | `0.1.0` | |
 | `DEMO_MODE` | `true` | When true, all external deps use deterministic offline stand-ins. Set `false` in production. |
+| `DEMO_USE_REAL_LLM` | `false` | With `DEMO_MODE=true`, use the real provider for chat while keeping the offline catalog/store/embedder. Lets you test real model replies locally without Shopify/Qdrant/Postgres. |
 
 ## HTTP server
 
@@ -58,6 +59,38 @@ Validation guards at startup:
 | `LLM_CHAIN` | `[]` | JSON list of providers for **priority-ordered failover** (see [LLM_FALLBACK.md](./LLM_FALLBACK.md)). When set, overrides single-provider mode. |
 | `LLM_COOLDOWN_SECONDS` | `86400` | How long a rate-limited provider stays disabled (24h). |
 | `GROQ_API_KEY_1` / `_2` / `_3` | — | Extra keys referenced by `api_key_env` in `LLM_CHAIN`. |
+
+
+## Supported LLM providers
+
+Any of these can be the single provider (`LLM_DEFAULT_PROVIDER`) or a member of
+the failover chain (`LLM_CHAIN`). All but Gemini and Anthropic speak the OpenAI
+API, so they share one adapter; only the base URL and key differ.
+
+| `LLM_DEFAULT_PROVIDER` | Key env var | Default endpoint | Package |
+|------------------------|-------------|------------------|---------|
+| `openai` | `OPENAI_API_KEY` | OpenAI | `openai` |
+| `gemini` | `GEMINI_API_KEY` | Google | `google-generativeai` |
+| `anthropic` / `claude` | `ANTHROPIC_API_KEY` | Anthropic | `anthropic` |
+| `groq` | `GROQ_API_KEY` | api.groq.com | `openai` |
+| `grok` / `xai` | `GROK_API_KEY` | api.x.ai | `openai` |
+| `mistral` | `LLM_API_KEY` | api.mistral.ai | `openai` |
+| `deepseek` | `LLM_API_KEY` | api.deepseek.com | `openai` |
+| `together` | `LLM_API_KEY` | api.together.xyz | `openai` |
+| `openrouter` | `LLM_API_KEY` | openrouter.ai | `openai` |
+| `fireworks` | `LLM_API_KEY` | api.fireworks.ai | `openai` |
+| `ollama` | none (local) | localhost:11434 | `openai` |
+| `vllm` / `openai_compatible` / `custom` | `LLM_API_KEY` (or none if local) | **set `LLM_BASE_URL`** | `openai` |
+
+Notes:
+- `LLM_BASE_URL` overrides any provider's endpoint (point `openai` at a proxy, or
+  reach a self-hosted model). It is required for `vllm`/`openai_compatible`/`custom`.
+- Local servers (Ollama/vLLM, or any `localhost` base URL) need no API key.
+- Embeddings: only OpenAI/Gemini provide them; every other provider uses the
+  offline hashing embedder automatically (`EMBEDDING_BACKEND=auto`). Set
+  `EMBEDDING_BACKEND=provider` to force provider embeddings where supported.
+- The runtime image installs the `providers` extra (`openai`, `google-generativeai`,
+  `anthropic`) plus `vector` and `docs`. The heavy `ml` extra (CLIP) is opt-in.
 
 ## RAG / knowledge base (Phase 1)
 

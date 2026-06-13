@@ -24,6 +24,7 @@ phrasing without bespoke patterns. A bare category mention with no filter
 
 from __future__ import annotations
 
+import asyncio
 import re
 from collections.abc import Sequence
 from typing import Protocol, runtime_checkable
@@ -34,6 +35,10 @@ from app.observability.logging import get_logger
 from app.recommendations.constraints import extract_constraints_from_history
 
 _log = get_logger("intent")
+
+# Cap the classification call so a slow/rate-limited provider never stalls a
+# turn; on timeout we fall back to the deterministic heuristic.
+_CLASSIFY_TIMEOUT_S = 6.0
 
 # "Complete the look" is a distinct, easily-recognised ask; keep it cheap.
 _COMPLETE_LOOK = re.compile(
@@ -128,8 +133,9 @@ class LLMIntentClassifier:
             Message(role=Role.USER, content=user),
         ]
         try:
-            result = await self._provider.chat(
-                messages, model=self._model, temperature=0.0, max_tokens=4
+            result = await asyncio.wait_for(
+                self._provider.chat(messages, model=self._model, temperature=0.0, max_tokens=4),
+                timeout=_CLASSIFY_TIMEOUT_S,
             )
         except Exception as exc:
             _log.warning("intent_classify_failed", error=str(exc))

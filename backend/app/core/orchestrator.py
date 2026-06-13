@@ -58,14 +58,37 @@ _VERIFY_PROMPT = (
     "number and the email address used on the order."
 )
 
+# When retrieval is weak, a real LLM may answer GENERAL questions from its own
+# knowledge — but must never invent store-specific facts (those route to a human).
+_ASSIST_SYSTEM = (
+    "You are a helpful assistant for {store}, an online fashion & clothing store. "
+    "Our knowledge base did not contain a specific answer to the customer's "
+    "question. Choose exactly one of these responses:\n\n"
+    "1) CLARIFY: If the message is vague, ambiguous, or missing key details (you "
+    "can't tell what they actually want), ask ONE short, friendly clarifying "
+    "question. Do not guess and do not list options — just ask. Example: if they "
+    'say "I need something", ask what kind of item or occasion they have in mind.\n\n'
+    "2) ANSWER: If the request is clear and you can help from general knowledge — "
+    "fashion and styling advice, fabric care, sizing and fit guidance, general "
+    "how-to/product questions — answer briefly and helpfully (1-4 sentences).\n\n"
+    "3) HANDOFF: If answering would require a fact specific to THIS store that you "
+    "were not given (prices, discounts, promotions, stock/availability, order "
+    "status or tracking, shipping times, or return/refund/exchange policy "
+    "details), reply with exactly the single word: HANDOFF\n\n"
+    "Never invent store-specific facts. When you give general advice, you may note "
+    "the customer can ask to be connected with our team for order- or policy-"
+    "specific questions."
+)
+
 
 @dataclass(slots=True)
 class AnswerEvent:
     """A streamed orchestration event surfaced to the transport (SSE)."""
 
-    type: str  # "token" | "citations" | "handoff" | "done"
+    type: str  # "token" | "citations" | "products" | "handoff" | "done"
     text: str = ""
     citations: list[str] = field(default_factory=list)
+    products: list[dict[str, object]] = field(default_factory=list)
     handoff_reason: str | None = None
     confidence: float = 0.0
     tokens: int = 0
@@ -110,6 +133,7 @@ class Orchestrator:
         store_name: str = "our store",
         min_confidence: float = 0.15,
         require_verification: bool = True,
+        allow_general_fallback: bool = False,
         model: str | None = None,
     ) -> None:
         self._provider = provider
@@ -121,6 +145,7 @@ class Orchestrator:
         self._store_name = store_name
         self._min_confidence = min_confidence
         self._require_verification = require_verification
+        self._allow_general_fallback = allow_general_fallback
         self._model = model
 
     def _system_message(self) -> Message:
@@ -228,8 +253,7 @@ class Orchestrator:
                 yield ev
             return
 
-        text = intro + " " + " ".join(_format_rec(r) for r in recs)
-        async for ev in self._emit_text(text, citations=[r.citation for r in recs]):
+        async for ev in self._emit_products(intro, recs):
             yield ev
 
     # ------------------------------------------------------------------ tools
@@ -298,14 +322,20 @@ class Orchestrator:
         decision = assess(chunks, min_score=self._min_confidence)
 
         if not decision.confident:
-            async for ev in self._handoff_flow(
-                conversation_id,
-                query,
-                history,
-                HandoffReason.LOW_CONFIDENCE,
-                confidence=decision.score,
-            ):
-                yield ev
+            # Try a best-effort general answer with a real LLM before handing off;
+            # the Fake/offline provider always hands off (keeps demo deterministic).
+            if self._allow_general_fallback and getattr(self._provider, "name", "") != "fake":
+                async for ev in self._assist_flow(conversation_id, query, history, chunks):
+                    yield ev
+            else:
+                async for ev in self._handoff_flow(
+                    conversation_id,
+                    query,
+                    history,
+                    HandoffReason.LOW_CONFIDENCE,
+                    confidence=decision.score,
+                ):
+                    yield ev
             return
 
         context_block = _build_context_block(chunks)
@@ -329,6 +359,43 @@ class Orchestrator:
         yield AnswerEvent(type="citations", citations=citations, confidence=decision.score)
         yield AnswerEvent(type="done", confidence=decision.score, tokens=usage_total)
 
+    # ------------------------------------------------------------- assist
+
+    async def _assist_flow(
+        self,
+        conversation_id: str,
+        query: str,
+        history: Sequence[Message],
+        chunks: Sequence[ScoredChunk],
+    ) -> AsyncIterator[AnswerEvent]:
+        """Best-effort general answer; route store-specific gaps to a human."""
+        context_block = _build_context_block(chunks) if chunks else "(no matching store content)"
+        user_content = (
+            f"Customer question: {query}\n\n"
+            f"<maybe_relevant_context>\n{context_block}\n</maybe_relevant_context>"
+        )
+        messages = [
+            Message(role=Role.SYSTEM, content=_ASSIST_SYSTEM.format(store=self._store_name)),
+            *history,
+            Message(role=Role.USER, content=user_content),
+        ]
+        try:
+            result = await self._provider.chat(messages, model=self._model, max_tokens=300)
+        except Exception as exc:
+            _log.warning("assist_failed", error=str(exc))
+            result = None
+        text = result.text.strip() if result else ""
+        if not text or text.upper().lstrip("#* ").startswith("HANDOFF"):
+            async for ev in self._handoff_flow(
+                conversation_id, query, history, HandoffReason.LOW_CONFIDENCE
+            ):
+                yield ev
+            return
+        metrics.incr("assist_answers_total")
+        _log.info("assist_answer", conversation_id=conversation_id)
+        async for ev in self._emit_text(text):
+            yield ev
+
     # --------------------------------------------------------------- helpers
 
     async def _emit_text(
@@ -340,6 +407,29 @@ class Orchestrator:
         if citations:
             yield AnswerEvent(type="citations", citations=citations, confidence=1.0)
         yield AnswerEvent(type="done", confidence=1.0 if ok else 0.0)
+
+    async def _emit_products(
+        self, intro: str, recs: list[Recommendation]
+    ) -> AsyncIterator[AnswerEvent]:
+        """Stream the product list as text (a11y/fallback) + a structured card event."""
+        text = intro + " " + " ".join(_format_rec(r) for r in recs)
+        for word in text.split(" "):
+            yield AnswerEvent(type="token", text=word + " ")
+        yield AnswerEvent(
+            type="products",
+            products=[
+                {
+                    "product_id": r.product_id,
+                    "title": r.title,
+                    "price": r.price,
+                    "url": r.url,
+                    "reason": r.reason,
+                }
+                for r in recs
+            ],
+        )
+        yield AnswerEvent(type="citations", citations=[r.citation for r in recs], confidence=1.0)
+        yield AnswerEvent(type="done", confidence=1.0)
 
     async def _handoff_flow(
         self,

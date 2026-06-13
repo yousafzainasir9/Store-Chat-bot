@@ -25,8 +25,10 @@ def test_recommendation_returns_products_with_citations(client: TestClient) -> N
     assert resp.status_code == 200
     body = _text(resp.text).lower()
     assert "dress" in body
-    assert any(e == "citations" for e, _ in _events(resp.text))
-    assert not any(e == "handoff" for e, _ in _events(resp.text))
+    events = [e for e, _ in _events(resp.text)]
+    assert "products" in events  # structured product cards are emitted
+    assert "citations" in events
+    assert "handoff" not in events
 
 
 def test_complete_the_look(client: TestClient) -> None:

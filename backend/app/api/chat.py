@@ -113,6 +113,8 @@ async def chat(request: Request, body: ChatRequest) -> EventSourceResponse:
                     "event": "handoff",
                     "data": json.dumps({"text": ev.text, "reason": ev.handoff_reason}),
                 }
+            elif ev.type == "products":
+                yield {"event": "products", "data": json.dumps(ev.products)}
             elif ev.type == "citations":
                 citations = ev.citations
                 confidence = ev.confidence

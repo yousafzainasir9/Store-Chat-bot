@@ -51,6 +51,9 @@
 .scw-product { display: block; padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 10px; text-decoration: none; color: inherit; }
 .scw-product b { display: block; }
 .scw-product span { color: var(--scw-muted); font-size: 13px; }
+.scw-product .scw-price { color: var(--scw-primary, #1f6feb); font-weight: 700; font-size: 14px; }
+.scw-product .scw-view { color: var(--scw-primary, #1f6feb); font-size: 12px; margin-top: 2px; }
+.scw-product:hover { border-color: var(--scw-primary, #1f6feb); }
 
 .scw-typing { align-self: flex-start; color: var(--scw-muted); font-size: 13px; padding: 4px 6px; }
 .scw-typing i { display: inline-block; width: 6px; height: 6px; margin-right: 3px; border-radius: 50%; background: var(--scw-muted); animation: scw-blink 1.2s infinite both; }

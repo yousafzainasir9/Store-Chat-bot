@@ -30,7 +30,7 @@ from app.handoff.base import HandoffProvider
 from app.handoff.log_provider import LoggingHandoffProvider
 from app.handoff.webhook_provider import WebhookHandoffProvider
 from app.llm.base import LLMProvider
-from app.llm.factory import build_provider, uses_chain
+from app.llm.factory import build_provider, real_llm_enabled, uses_chain
 from app.observability.logging import get_logger
 from app.rag.embeddings import Embedder, HashingEmbedder, ProviderEmbedder
 from app.rag.image_embeddings import CLIPImageEmbedder, FakeImageEmbedder, ImageEmbedder
@@ -127,7 +127,7 @@ def _provider_can_embed(settings: Settings) -> bool:
     Groq is chat-only (no embeddings endpoint), so a Groq-only deployment must
     fall back to the offline hashing embedder for retrieval.
     """
-    embed_capable = {"openai", "gemini"}
+    embed_capable = {"openai", "gemini", "google"}
     if settings.llm_chain:
         return any(c.provider in embed_capable for c in settings.llm_chain)
     return settings.llm_default_provider.lower() in embed_capable
@@ -257,13 +257,10 @@ def build_container(settings: Settings) -> Container:
         visual_indexer = VisualIndexer(image_embedder, image_store, image_source)
         visual_search = VisualSearchService(image_embedder, image_store, order_service)
 
-    soft_model = (
-        None if (settings.demo_mode or uses_chain(settings)) else settings.llm_default_model
-    )
+    real_llm = real_llm_enabled(settings)
+    soft_model = None if (not real_llm or uses_chain(settings)) else settings.llm_default_model
     intent_classifier: IntentClassifier = (
-        HeuristicIntentClassifier()
-        if settings.demo_mode
-        else LLMIntentClassifier(provider, model=soft_model)
+        LLMIntentClassifier(provider, model=soft_model) if real_llm else HeuristicIntentClassifier()
     )
     orchestrator = Orchestrator(
         provider,
@@ -275,9 +272,8 @@ def build_container(settings: Settings) -> Container:
         store_name=settings.store_name,
         min_confidence=settings.rag_min_confidence,
         require_verification=settings.require_identity_verification,
-        model=(
-            None if (settings.demo_mode or uses_chain(settings)) else settings.llm_default_model
-        ),
+        allow_general_fallback=settings.assist_fallback_enabled and real_llm,
+        model=(None if (not real_llm or uses_chain(settings)) else settings.llm_default_model),
     )
     job_queue = InlineJobQueue(
         {

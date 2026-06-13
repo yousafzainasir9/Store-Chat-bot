@@ -39,7 +39,7 @@ def generate_catalog_jsonl(n_products: int = 50) -> list[str]:
                     "vendor": "Acme Threads",
                     "tags": ["fashion", ptype.lower(), color.lower()],
                     "status": "ACTIVE",
-                    "onlineStoreUrl": f"https://example.com/products/{ptype.lower()}-{i}",
+                    "onlineStoreUrl": f"/products/{ptype.lower()}-{i}",
                     "featuredImage": {"url": f"https://img.example.com/{ptype.lower()}-{i}.jpg"},
                     "priceRangeV2": {
                         "minVariantPrice": {"amount": f"{price:.2f}", "currencyCode": "USD"},

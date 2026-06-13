@@ -23,7 +23,12 @@ RUN uv venv /opt/venv
 #   COPY pyproject.toml uv.lock ./ && uv sync --frozen --no-dev
 COPY pyproject.toml README.md ./
 COPY app ./app
-RUN uv pip install .
+# Install runtime extras so real providers work in a deployed image:
+#   providers -> openai client (also used by the Groq adapter) + google-generativeai
+#   vector    -> qdrant-client (for QDRANT_URL deployments)
+#   docs      -> pypdf + python-docx (admin FAQ document upload)
+# The heavy `ml` extra (CLIP/torch) is omitted; enable it only for real visual search.
+RUN uv pip install ".[providers,vector,docs]"
 
 # ---- Runtime: minimal, non-root ----
 FROM python:3.12-slim AS runtime
@@ -38,6 +43,8 @@ RUN groupadd --system app && useradd --system --gid app --create-home app
 WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 COPY --chown=app:app app ./app
+# Seed knowledge base (FAQs, shipping/returns, size guide) — indexed at startup.
+COPY --chown=app:app seed ./seed
 
 USER app
 EXPOSE 8000

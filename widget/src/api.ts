@@ -53,6 +53,7 @@ export class ChatApi {
     cb: {
       onToken: (t: string) => void;
       onCitations: (c: string[]) => void;
+      onProducts: (products: ProductResult[]) => void;
       onHandoff: (text: string) => void;
       onMeta: (conversationId: string) => void;
     },
@@ -85,6 +86,7 @@ export class ChatApi {
     cb: {
       onToken: (t: string) => void;
       onCitations: (c: string[]) => void;
+      onProducts: (products: ProductResult[]) => void;
       onHandoff: (text: string) => void;
       onMeta: (conversationId: string) => void;
     },
@@ -107,6 +109,13 @@ export class ChatApi {
       case "citations":
         try {
           cb.onCitations(JSON.parse(data));
+        } catch {
+          /* ignore malformed */
+        }
+        break;
+      case "products":
+        try {
+          cb.onProducts(JSON.parse(data));
         } catch {
           /* ignore malformed */
         }

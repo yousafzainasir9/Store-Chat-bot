@@ -43,7 +43,10 @@ class LLMProviderConfig(BaseModel):
     ``api_key_env``, else the provider's default env key.
     """
 
-    provider: Literal["openai", "gemini", "groq"]
+    # Any supported provider name (see app/llm/factory.py): openai, gemini,
+    # groq, grok/xai, anthropic/claude, mistral, deepseek, together,
+    # openrouter, fireworks, ollama, vllm, openai_compatible/custom/local.
+    provider: str
     model: str | None = None
     name: str | None = None
     api_key: str | None = None
@@ -70,7 +73,14 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
 
     # Demo mode lets Phases 2-4 be built/tested without touching a real store.
+    # It keeps ALL infrastructure offline: synthetic catalog, in-memory vector
+    # store + repository, hashing embedder, fake Shopify, and the Fake LLM.
     demo_mode: bool = True
+    # Use a real LLM provider for chat *while keeping the rest of demo mode
+    # offline*. Lets you test real model replies (and the LLM intent classifier)
+    # against the synthetic catalog with no Shopify/Qdrant/Postgres. Ignored
+    # unless demo_mode is true; has no effect in a full (non-demo) deployment.
+    demo_use_real_llm: bool = False
 
     # ---- HTTP server ----
     host: str = "0.0.0.0"  # noqa: S104 — bind-all is intended inside a container
@@ -98,7 +108,14 @@ class Settings(BaseSettings):
     llm_default_model: str = "gpt-4o-mini"
     openai_api_key: str | None = None
     gemini_api_key: str | None = None
-    grok_api_key: str | None = None
+    grok_api_key: str | None = None  # xAI Grok (OpenAI-compatible)
+    anthropic_api_key: str | None = None  # Anthropic Claude
+    # Generic OpenAI-compatible endpoint + key. LLM_BASE_URL overrides the
+    # provider's default URL (required for openai_compatible/custom/vllm).
+    # LLM_API_KEY is the fallback key for providers without a dedicated field
+    # (mistral, deepseek, together, openrouter, fireworks, ...).
+    llm_base_url: str | None = None
+    llm_api_key: str | None = None
 
     # ---- LLM fallback chain (priority-ordered failover with cooldown) ----
     # JSON list of provider entries, e.g.:
@@ -157,6 +174,10 @@ class Settings(BaseSettings):
     exchanges_enabled: bool = False
     # Identity verification is mandatory before any order/PII or return action.
     require_identity_verification: bool = True
+    # When retrieval is weak, let a real LLM answer GENERAL questions from its own
+    # knowledge (styling, care, sizing) instead of always handing off. It still
+    # refuses to invent store-specific facts (price/stock/policy/orders).
+    assist_fallback_enabled: bool = True
 
     # ---- Human handoff (Phase 3) ----
     # Pluggable channel: "logging" (default) or "webhook" (Gorgias/Zendesk/email-relay).

@@ -34,6 +34,11 @@ _OCCASIONS = ["wedding", "work", "office", "casual", "party", "beach", "gym", "d
 _BUDGET_RANGE = re.compile(r"\$?(\d{1,4})\s*(?:-|to|and)\s*\$?(\d{1,4})")
 _BUDGET_MAX = re.compile(r"(?:under|below|less than|max|up to|cheaper than)\s*\$?(\d{1,4})", re.I)
 _BUDGET_AROUND = re.compile(r"(?:around|about|approx(?:imately)?|~)\s*\$?(\d{1,4})", re.I)
+# A bare price-like number (e.g. "54 shirts", "shirt for 54") when paired with a
+# product category. Excludes numbers that are a size ("size 10") or quantity-ish
+# single digits.
+_BARE_NUMBER = re.compile(r"(?<![\w$])(\d{2,4})(?![\w%])")
+_SIZE_PREFIX = re.compile(r"size\s*$", re.I)
 _SIZE_LETTER = re.compile(r"\bsize\s*(xs|s|m|l|xl|xxl)\b", re.I)
 _GENDER_MEN = re.compile(r"\b(men'?s?|mens|for him|male)\b", re.I)
 _GENDER_WOMEN = re.compile(r"\b(women'?s?|womens|ladies|for her|female)\b", re.I)
@@ -98,10 +103,20 @@ def extract_constraints(text: str) -> Constraints:
     occasion = next((o for o in _OCCASIONS if re.search(rf"\b{o}\b", low)), None)
     gender = "men" if _GENDER_MEN.search(text) else "women" if _GENDER_WOMEN.search(text) else None
     budget_min, budget_max = _extract_budget(text)
+    size = _extract_size(text)
+    # "54 shirts" / "shirt for 54": a bare number next to a product means a price
+    # ceiling. Only when we have a category, no explicit budget, and the number
+    # isn't a size value.
+    if category and budget_min is None and budget_max is None:
+        for m in _BARE_NUMBER.finditer(text):
+            if _SIZE_PREFIX.search(text[: m.start()]):
+                continue  # it's a numeric size ("size 10"), not a price
+            budget_max = float(m.group(1))
+            break
     return Constraints(
         category=category,
         color=color,
-        size=_extract_size(text),
+        size=size,
         gender=gender,
         occasion=occasion,
         budget_min=budget_min,

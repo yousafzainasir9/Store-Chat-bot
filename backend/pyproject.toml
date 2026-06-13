@@ -41,8 +41,9 @@ dev = [
 ]
 # Real LLM + embedding providers (deployed environments).
 providers = [
-    "openai>=1.54,<2.0",
-    "google-generativeai>=0.8,<1.0",
+    "openai>=1.54,<2.0",              # OpenAI + all OpenAI-compatible (Groq, Grok, Mistral, DeepSeek, Together, OpenRouter, Ollama/vLLM, ...)
+    "google-generativeai>=0.8,<1.0",  # Google Gemini
+    "anthropic>=0.39,<1.0",          # Anthropic Claude
 ]
 # Production vector store.
 vector = [
@@ -102,6 +103,7 @@ disallow_untyped_defs = false
 module = [
     "openai.*",
     "google.*",
+    "anthropic.*",
     "qdrant_client.*",
     "sentence_transformers.*",
 ]

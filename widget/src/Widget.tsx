@@ -49,7 +49,13 @@ export function Widget({ config }: Props) {
     setProducts([]);
     const userMsg: ChatMessage = { id: nextId(), role: "user", text };
     const assistantId = nextId();
-    const history = messages.map((m) => ({ role: m.role, content: m.text }));
+    // Only send completed, non-empty turns: the backend rejects empty-content
+    // history (ChatTurn requires min_length=1), and a still-pending assistant
+    // placeholder has empty text. Cap to the backend's max history length.
+    const history = messages
+      .filter((m) => !m.pending && m.text.trim() !== "")
+      .map((m) => ({ role: m.role, content: m.text }))
+      .slice(-20);
     setMessages((prev) => [
       ...prev,
       userMsg,
@@ -65,6 +71,7 @@ export function Widget({ config }: Props) {
         onMeta: (cid) => (conversationId.current = cid),
         onToken: (tok) => patch((m) => ({ ...m, text: m.text + tok, pending: false })),
         onCitations: (c) => patch((m) => ({ ...m, citations: c })),
+        onProducts: (ps) => setProducts(ps),
         onHandoff: (txt) => patch((m) => ({ ...m, text: txt, handoff: true, pending: false })),
       });
     } catch {
@@ -148,8 +155,10 @@ export function Widget({ config }: Props) {
           <div class="scw-products">
             {products.map((p) => (
               <a key={p.product_id} class="scw-product" href={p.url} target="_blank" rel="noopener">
-                <b>{p.title}{p.price ? ` — $${p.price.toFixed(0)}` : ""}</b>
-                <span>{p.reason}</span>
+                <b>{p.title}</b>
+                {p.price ? <span class="scw-price">${p.price.toFixed(0)}</span> : null}
+                {p.reason ? <span>{p.reason}</span> : null}
+                <span class="scw-view">View product →</span>
               </a>
             ))}
           </div>

@@ -36,3 +36,21 @@ def test_history_accumulates_newer_wins() -> None:
     assert c.color == "Black"
     assert c.size == "M"
     assert c.budget_max == 100.0
+
+
+def test_bare_number_with_category_is_price_ceiling() -> None:
+    # "54 shirts" / "shirt for 54" -> shirts up to $54 (a common shopper phrasing).
+    for q in ("give me 54 shirts options", "54 dollars shirt", "a shirt for 54"):
+        c = extract_constraints(q)
+        assert c.category == "Shirt"
+        assert c.budget_max == 54.0
+
+
+def test_numeric_size_is_not_treated_as_price() -> None:
+    c = extract_constraints("size 10 shirt")
+    assert c.budget_max is None
+
+
+def test_bare_category_without_number_has_no_budget() -> None:
+    c = extract_constraints("do you have any dresses")
+    assert c.budget_max is None
