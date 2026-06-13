@@ -29,7 +29,7 @@ Path-specific extras:
 
 | Tool | Needed for | Notes |
 |---|---|---|
-| **OpenAI or Gemini API key** | live, ngrok | The LLM provider. |
+| **An LLM provider key** | live, ngrok | Any supported provider — Groq, OpenAI, Gemini, Anthropic, etc. Groq is chat-only, so retrieval uses the offline embedder (`EMBEDDING_BACKEND=auto`). |
 | **Qdrant** | live (and optional for ngrok) | Qdrant Cloud or the docker-compose service. |
 | **Postgres + Redis** | live (optional for ngrok) | Managed in prod; docker-compose locally. |
 | **Shopify dev store + custom app** | live, ngrok | Admin API token + API secret (for webhook HMAC). See [SHOPIFY_SETUP.md](./SHOPIFY_SETUP.md). |
