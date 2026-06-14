@@ -210,8 +210,16 @@ class Settings(BaseSettings):
 
     @field_validator("cors_origins")
     @classmethod
-    def _strip_origins(cls, v: str) -> str:
-        return v.strip()
+    def _strip_origins(cls, v: str, info: ValidationInfo) -> str:
+        v = v.strip()
+        # A wildcard origin combined with credentialed requests lets any website
+        # call the API with the visitor's cookies. Refuse it in production; the
+        # storefront origin(s) must be set explicitly there.
+        if v == "*" and info.data.get("environment") == Environment.PRODUCTION:
+            raise ValueError(
+                "CORS_ORIGINS must list explicit storefront origins in production, not '*'"
+            )
+        return v
 
     @field_validator("debug")
     @classmethod

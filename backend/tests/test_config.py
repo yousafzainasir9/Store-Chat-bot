@@ -17,6 +17,21 @@ def test_debug_forbidden_in_production() -> None:
         Settings(environment=Environment.PRODUCTION, debug=True)
 
 
+def test_wildcard_cors_forbidden_in_production() -> None:
+    # "*" + credentialed CORS would allow any site to call the API authenticated.
+    with pytest.raises(ValidationError):
+        Settings(environment=Environment.PRODUCTION, admin_api_key="k", cors_origins="*")
+
+
+def test_explicit_cors_allowed_in_production() -> None:
+    s = Settings(
+        environment=Environment.PRODUCTION,
+        admin_api_key="k",
+        cors_origins="https://shop.example.com",
+    )
+    assert s.cors_origin_list == ["https://shop.example.com"]
+
+
 def test_defaults_are_safe() -> None:
     s = Settings()
     assert s.demo_mode is True

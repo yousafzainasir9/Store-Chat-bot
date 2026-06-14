@@ -62,10 +62,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(RequestContextMiddleware)
     if settings.security_headers_enabled:
         app.add_middleware(SecurityHeadersMiddleware)
+    # Never advertise credentialed access alongside a wildcard origin: Starlette
+    # would otherwise reflect any caller's Origin and allow credentials, letting
+    # any site make authenticated cross-origin requests. With an explicit origin
+    # allow-list, credentials are safe to enable.
+    cors_origins = settings.cors_origin_list
+    cors_allow_credentials = cors_origins != ["*"]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origin_list,
-        allow_credentials=True,
+        allow_origins=cors_origins,
+        allow_credentials=cors_allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
         expose_headers=["X-Request-ID"],

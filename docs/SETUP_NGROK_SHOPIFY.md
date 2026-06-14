@@ -1,312 +1,279 @@
-# Connect the chatbot to your Shopify store with ngrok
+# Connect the chatbot to your Shopify store (with ngrok)
 
-Run the backend on your laptop but wire it to your **real Shopify dev store**
-(`acme-threads.myshopify.com`) — including **webhooks that reach `localhost`**
-through an [ngrok](https://ngrok.com) HTTPS tunnel. This is the realistic way to
-develop and test the live Shopify integration (catalog sync, webhooks, live
-order/stock tools) without deploying anything.
+This guide takes you from nothing to a **working AI chatbot answering questions
+about your real Shopify store** — running on your own computer, connected to the
+store through a secure [ngrok](https://ngrok.com) tunnel.
 
-```
- Shopify dev store ──webhook──▶  https://abc123.ngrok-free.app  ──▶  localhost:8000 (your backend)
-        ▲                                   (ngrok tunnel)
-        └──── Admin GraphQL (catalog/orders) ◀── your backend
-```
+It's written so you **don't need to be a developer**. You'll copy a few values,
+paste them into one file, and run a handful of commands exactly as written.
+After each step there's a **"✅ What you should see"** check so you always know
+it worked before moving on.
 
-> **Prerequisites**
-> - [SETUP_LOCAL.md](./SETUP_LOCAL.md) working (backend runs, tests pass).
-> - Your Shopify dev store: **`acme-threads.myshopify.com`**.
-> - An LLM key — you already use **Groq** (`GROQ_API_KEY`). OpenAI/Gemini are
->   optional alternatives.
-> - A free [ngrok](https://ngrok.com) account + the `ngrok` CLI installed.
+> **Your store for this guide:** `acme-threads.myshopify.com`
+> **Your AI provider:** Groq (already set up in your `.env`).
 
 ---
 
-## 0. The five keys you need (and where each one comes from)
+## What you'll have at the end
 
-Everything below is just about getting these five values and pasting them into
-`.env`. Get them first; the rest is wiring.
+- The chatbot running at `http://localhost:8000` on your computer.
+- It knows your 20 products, prices, sizes, and policies.
+- A public web address (from ngrok) so Shopify can talk to it.
+- Live updates: edit a product in Shopify and the bot knows within seconds.
 
-| `.env` variable | What it is | Where to get it |
-|---|---|---|
-| `SHOPIFY_STORE_DOMAIN` | Your store's permanent domain | It's `acme-threads.myshopify.com` (the `*.myshopify.com` URL, **not** a custom domain). |
-| `SHOPIFY_ADMIN_API_TOKEN` | Admin API access token (`shpat_…`) | Custom app → **API credentials** → *Admin API access token* → **Reveal once**. |
-| `SHOPIFY_WEBHOOK_SECRET` | Verifies webhook HMAC signatures | Custom app → **API credentials** → *API secret key*. |
-| `GROQ_API_KEY` | Your LLM key (already set) | [console.groq.com](https://console.groq.com) → **API Keys**. Already in your `.env`. |
-| ngrok authtoken | Authorizes the tunnel | [dashboard.ngrok.com](https://dashboard.ngrok.com) → *Your Authtoken*. |
-
-> 🔐 **Never commit these.** They live only in `.env`, which is git-ignored. The
-> Admin API token and API secret key grant full access to your store data.
+Total time: about **20–30 minutes** the first time.
 
 ---
 
-## 1. Create the Shopify custom app and grab the two Shopify keys
+## Before you start: install two free tools
 
-A **custom app** (single store, token auth, no App Store review) is the right
-choice here — see [SHOPIFY_SETUP.md](./SHOPIFY_SETUP.md) for the why.
+You only need these two. Click each link, download, and install like any normal
+app.
 
-1. In your Acme Threads admin: **Settings → Apps and sales channels →
-   Develop apps**.
-   - Direct link: `https://admin.shopify.com/store/acme-threads/settings/apps/development`
-   - If prompted, click **Allow custom app development**.
-2. **Create an app** → name it `Support Chatbot` → **Create app**.
-3. Open the **Configuration** tab → **Admin API integration → Configure** and
-   grant **only** these scopes for now (least privilege):
+1. **Docker Desktop** — runs the chatbot for you so you don't have to install
+   Python or anything else. Get it at <https://www.docker.com/products/docker-desktop/>.
+   After installing, **open Docker Desktop once** and leave it running (you'll
+   see a whale icon in your menu bar / system tray).
+2. **ngrok** — creates the secure public address. Get it at
+   <https://ngrok.com/download> and create a free account.
+
+You'll also open a **Terminal** (Mac: press ⌘+Space, type "Terminal", Enter.
+Windows: Start menu → type "PowerShell", Enter). Every command below is typed
+there, one line at a time, pressing Enter after each.
+
+> Whenever a command starts with `cd`, it means "go into this folder." Replace
+> the path with wherever you saved this project.
+
+---
+
+## Part A — Get your two Shopify keys
+
+The chatbot needs permission to read your store. You grant it by making a
+**custom app** inside Shopify. This is just clicking through a settings page.
+
+1. Go to **<https://admin.shopify.com/store/acme-threads/settings/apps/development>**.
+2. If you see a button **Allow custom app development**, click it (and confirm).
+3. Click **Create an app** → name it `Support Chatbot` → **Create app**.
+4. Click the **Configuration** tab → under *Admin API integration* click
+   **Configure**. Tick these boxes, then **Save**:
    - `read_products`
    - `read_inventory`
-   - *(Add `read_orders`, `read_fulfillments` later only when you test order
-     tools — see step 9.)*
-   - **Save**.
-4. Go to the **API credentials** tab → **Install app** → **Install**.
-5. Copy your two Shopify keys from this same **API credentials** tab:
-   - **Admin API access token** — click **Reveal token once**. This is
-     `SHOPIFY_ADMIN_API_TOKEN` (starts with `shpat_`). ⚠️ Shown **once** — copy it
-     now; if you lose it you must uninstall/reinstall.
-   - **API secret key** — this is `SHOPIFY_WEBHOOK_SECRET`.
+5. Click the **API credentials** tab → **Install app** → **Install**.
+6. On that same page, copy your **two keys** somewhere safe for a minute:
+   - **Admin API access token** — click **Reveal token once**. It starts with
+     `shpat_`. ⚠️ You can only see it **once**, so copy it now.
+   - **API secret key** — copy this too.
+
+✅ **What you should see:** an "Admin API access token" beginning `shpat_…` and
+an "API secret key". You now have both keys.
 
 ---
 
-## 2. Add the keys to `.env`
+## Part B — Put the keys in the `.env` file
 
-Edit the **repo-root `.env`** (not `.env.example`). Flip these values:
+`.env` is the chatbot's settings file. It's in the **main project folder**
+(the same folder as this `docs` folder). Open it with any text editor
+(Notepad, TextEdit, VS Code).
+
+Find these lines and set them to look exactly like this — pasting **your** keys
+where shown:
 
 ```bash
-# --- Switch off demo mode: use the REAL Shopify backend now ---
+# Turn OFF demo mode so it uses your real store:
 DEMO_MODE=false
 
-# --- LLM (you're on Groq) ---
+# Your AI provider (already set — leave as-is):
 LLM_DEFAULT_PROVIDER=groq
-LLM_DEFAULT_MODEL=llama-3.1-8b-instant
-GROQ_API_KEY=gsk_...                      # already set in your .env
-
-# Groq has no embeddings API, so retrieval uses the offline hashing embedder.
-# "auto" handles this automatically — leave it as-is (or set explicitly):
+GROQ_API_KEY=gsk_...            # already filled in
 EMBEDDING_BACKEND=auto
 
-# --- Shopify (your Acme Threads dev store) ---
+# Your Shopify store and the two keys from Part A:
 SHOPIFY_STORE_DOMAIN=acme-threads.myshopify.com
-SHOPIFY_ADMIN_API_TOKEN=shpat_...         # from step 1.5
-SHOPIFY_WEBHOOK_SECRET=...                # = API secret key, from step 1.5
+SHOPIFY_ADMIN_API_TOKEN=shpat_...     # paste the Admin API access token
+SHOPIFY_WEBHOOK_SECRET=...            # paste the API secret key
 SHOPIFY_API_VERSION=2025-01
 
-# --- Datastores: simplest is the in-memory variant (see note) ---
-# Leave these UNSET for a quick test (in-memory). Set them to use Postgres/Qdrant.
-# DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/storechat
-# QDRANT_URL=http://localhost:6333
-# REDIS_URL=redis://localhost:6379/0
-
-# --- Allow the storefront origin if you embed the widget on the dev store ---
+# Lets the chat widget load on your storefront:
 CORS_ORIGINS=https://acme-threads.myshopify.com,http://localhost:5173
 ```
 
-> **In-memory vs. persistent:** with `DATABASE_URL`/`QDRANT_URL`/`REDIS_URL`
-> unset, the app uses in-memory stores — perfect for a quick end-to-end test
-> (webhooks and live order/stock tools still work; data just resets on restart).
-> To persist conversations and the index, set all three and run the datastores
-> via `docker compose up -d postgres redis qdrant`.
+**Save the file.**
 
-> **Why `EMBEDDING_BACKEND=auto`:** Groq is chat-only (no embeddings endpoint).
-> `auto` detects this and uses the deterministic offline hashing embedder for
-> retrieval, so RAG works without an OpenAI/Gemini key. If you later add an
-> `OPENAI_API_KEY` and want higher-quality retrieval, set
-> `EMBEDDING_BACKEND=provider`.
+> You do **not** need to touch the database or Qdrant lines — Docker sets those
+> up for you automatically.
 
-Install the real-backend extras:
-
-```bash
-cd backend
-uv sync --extra dev --extra providers --extra vector   # add --extra ml for cross-encoder/CLIP
-```
+✅ **What you should see:** the file saved with `DEMO_MODE=false` and your two
+`shpat_…` / secret values filled in. No line should still say `...`.
 
 ---
 
-## 3. Run the backend
+## Part C — Start the chatbot
+
+In your Terminal, go into the project folder and start everything with one
+command:
 
 ```bash
-cd backend
-uv run uvicorn app.main:app --reload --env-file ../.env --host 0.0.0.0 --port 8000
-curl http://localhost:8000/health      # expect "demo_mode": false
+cd path/to/Store-Chat-bot
+docker compose up
 ```
 
-If `/health` shows `"demo_mode": false`, your keys loaded and you're talking to
-real Shopify.
+The first time, Docker downloads and builds things — this can take **5–10
+minutes**. Leave it running. When it's ready you'll see log lines mentioning
+`Uvicorn running on http://0.0.0.0:8000`.
+
+Open a **second** Terminal window and check it's alive:
+
+```bash
+curl http://localhost:8000/health
+```
+
+✅ **What you should see:** a line containing `"demo_mode": false`. That means
+the chatbot started and is pointed at your real store.
+
+> Keep the first Terminal (with `docker compose up`) running the whole time.
+> To stop everything later, click that window and press **Ctrl+C**.
 
 ---
 
-## 4. Start the ngrok tunnel
+## Part D — Load your products into the chatbot
 
-First-time only — register your authtoken (from
-[dashboard.ngrok.com](https://dashboard.ngrok.com)):
+The bot starts empty. This one command pulls your whole catalog in:
 
 ```bash
-ngrok config add-authtoken <your-ngrok-authtoken>
+docker compose exec api python scripts/import_catalog.py
 ```
 
-Then, in a **second terminal**:
+✅ **What you should see:** a message like
+`Indexed N knowledge-base chunk(s) and M product chunk(s).` `M` should be a
+number in the dozens (you have 20 products with variants).
+
+Quick test — ask the bot something:
+
+```bash
+curl -N -X POST http://localhost:8000/chat -H "Content-Type: application/json" -d "{\"message\":\"what shirts do you have?\"}"
+```
+
+✅ **What you should see:** a reply that mentions real products from your store
+(e.g. the Oxford Shirt, Polo, or T-shirt), not "I don't have that information."
+
+---
+
+## Part E — Give the chatbot a public address (ngrok)
+
+Shopify lives on the internet and can't reach `localhost` on your computer.
+ngrok creates a public web address that forwards to it.
+
+First time only, connect ngrok to your account (copy your token from
+<https://dashboard.ngrok.com> → *Your Authtoken*):
+
+```bash
+ngrok config add-authtoken YOUR_TOKEN_HERE
+```
+
+Then start the tunnel (in a **third** Terminal window):
 
 ```bash
 ngrok http 8000
 ```
 
-ngrok prints a public HTTPS URL:
+ngrok shows a line like:
 
 ```
 Forwarding   https://abc123.ngrok-free.app -> http://localhost:8000
 ```
 
-Copy that URL — call it **`$NGROK`**. Verify it reaches your backend:
+Copy that `https://abc123.ngrok-free.app` address.
 
-```bash
-curl https://abc123.ngrok-free.app/health
-```
+✅ **What you should see:** a `https://…ngrok-free.app` address. Paste it into a
+browser with `/health` on the end (e.g.
+`https://abc123.ngrok-free.app/health`) — it should show the same
+`"demo_mode": false`.
 
-> ⚠️ **Free ngrok URLs change every restart.** Keep this terminal running. If the
-> URL rotates, re-run the webhook registration (step 6) with the new URL.
+> ⚠️ The free ngrok address **changes every time you restart ngrok.** If it
+> changes, just re-run Part F with the new address.
 
 ---
 
-## 5. Import the catalog (one-time full sync)
+## Part F — Connect Shopify's live updates (webhooks)
 
-Pull your dev store's products into the RAG index via Shopify Bulk Operations:
+This makes the bot update itself when you change a product. Run this one
+command, pasting **your** ngrok address from Part E:
+
+```bash
+docker compose exec api python scripts/register_webhooks.py https://abc123.ngrok-free.app
+```
+
+✅ **What you should see:** four lines each ending in `[ok]` (or `[skip]` if you
+ran it before):
+
+```
+  [ok]   PRODUCTS_CREATE
+  [ok]   PRODUCTS_UPDATE
+  [ok]   PRODUCTS_DELETE
+  [ok]   INVENTORY_LEVELS_UPDATE
+```
+
+---
+
+## Part G — Test the whole thing end to end
+
+1. In Shopify admin, open any product and change its description, then **Save**.
+2. Look at your first Terminal (the `docker compose up` one). Within a few
+   seconds you should see a line like `reindex_product`.
+3. Ask the bot about that product again (the `curl … /chat` command from Part
+   D) — your change is reflected.
+
+✅ **If that worked, you're done.** The chatbot is live, knows your catalog, and
+stays in sync with your store.
+
+---
+
+## Everyday use after the first setup
+
+You don't repeat the whole guide each time. To start working again:
+
+1. Open Docker Desktop (whale icon running).
+2. Terminal 1: `cd path/to/Store-Chat-bot` then `docker compose up`.
+3. Terminal 2: `ngrok http 8000`.
+4. If the ngrok address changed, re-run **Part F** with the new one.
+
+To stop: press **Ctrl+C** in the `docker compose up` window.
+
+---
+
+## If something goes wrong
+
+| What you see | What to do |
+|---|---|
+| `curl … /health` shows `"demo_mode": true` | `.env` still has `DEMO_MODE=true`, or you didn't save it. Fix it and run `docker compose restart api`. |
+| `docker: command not found` | Docker Desktop isn't installed or isn't running. Open the app and wait for the whale icon. |
+| Import says "Missing Shopify credentials" | A key in `.env` is blank or misspelled. Re-check Part B, then re-run. |
+| Webhook step shows `[FAIL]` | The ngrok address is wrong/expired, or the token is missing `read_products`. Re-copy the ngrok URL and re-run. |
+| `/chat` replies "I don't have that information" | The catalog import (Part D) didn't run or returned 0. Re-run it and check it reports a product count. |
+| ngrok shows a warning page in the browser | Normal for the free plan when visiting in a browser; it doesn't affect Shopify or the chatbot. |
+| The first `docker compose up` is very slow | Normal the first time (it's downloading). Later starts take seconds. |
+
+---
+
+## Advanced: run it without Docker
+
+If you'd rather not use Docker and you're comfortable with a terminal, you can
+run the backend directly with [uv](https://docs.astral.sh/uv/):
 
 ```bash
 cd backend
-uv run python - <<'PY'
-import asyncio
-from app.config import get_settings
-from app.services.container import build_container
-
-async def main():
-    c = build_container(get_settings())
-    await c.bootstrap()                       # seed the knowledge base (FAQs, policies)
-    n = await c.catalog.full_import()         # live Shopify bulk import of products
-    print("indexed product chunks:", n)
-
-asyncio.run(main())
-PY
+uv sync --extra dev --extra providers --extra vector
+# Start Qdrant/Postgres/Redis so the import and server share one index:
+docker compose up -d postgres redis qdrant
+uv run uvicorn app.main:app --reload --env-file ../.env --host 0.0.0.0 --port 8000
+# In another terminal:
+uv run python scripts/import_catalog.py
+uv run python scripts/register_webhooks.py https://abc123.ngrok-free.app
 ```
 
-Now product questions and recommendations use your **real** catalog. Test it:
+Everything else (ngrok, testing, webhooks) is identical to the Docker steps
+above.
 
-```bash
-curl -N -X POST http://localhost:8000/chat -H 'Content-Type: application/json' \
-  -d '{"message":"do you have any shirts under $50?"}'
-```
-
-> If you haven't loaded products into Acme Threads yet (the catalog is empty),
-> this returns nothing useful — reconnect the Shopify connector first so I can
-> create the 20 products with images, then re-run this import.
-
----
-
-## 6. Register Shopify webhooks → your ngrok URL
-
-This is what keeps the index fresh: when you edit a product in Shopify, it pings
-your local backend through ngrok and re-indexes. Run this once (re-run if the
-ngrok URL changes):
-
-```bash
-NGROK=https://abc123.ngrok-free.app
-STORE=acme-threads.myshopify.com
-TOKEN=shpat_...                              # SHOPIFY_ADMIN_API_TOKEN
-
-for TOPIC in PRODUCTS_CREATE PRODUCTS_UPDATE PRODUCTS_DELETE INVENTORY_LEVELS_UPDATE; do
-  curl -s -X POST "https://$STORE/admin/api/2025-01/graphql.json" \
-    -H "X-Shopify-Access-Token: $TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "{\"query\":\"mutation { webhookSubscriptionCreate(topic: $TOPIC, webhookSubscription: { callbackUrl: \\\"$NGROK/webhooks/shopify\\\", format: JSON }) { userErrors { message } webhookSubscription { id } } }\"}"
-  echo
-done
-```
-
----
-
-## 7. Test the end-to-end webhook flow
-
-1. In the Shopify admin, **edit a product** (change its title or description) and
-   save.
-2. Watch the backend logs — you should see a verified webhook and a re-index:
-   ```
-   {"event":"request","path":"/webhooks/shopify","status":200,...}
-   {"event":"reindex_product","product_id":"gid://shopify/Product/...","chunks":1}
-   ```
-3. Ask the bot about the changed product — the new content is reflected.
-
-If you instead see `{"event":"webhook_unverified"}` with a `401`, your
-`SHOPIFY_WEBHOOK_SECRET` doesn't match the app's **API secret key** — fix it in
-`.env` and restart the backend.
-
----
-
-## 8. (Optional) Embed the widget on the dev storefront
-
-To test the chat widget on the real store, pointing at your local backend via
-ngrok:
-
-1. Build the widget: `cd widget && npm run build`.
-2. Deploy the theme app extension: `cd shopify-app && shopify app deploy`.
-3. In the dev store's **theme editor → App embeds**, enable the widget and set
-   the **API base URL** to your **`$NGROK`** URL.
-4. Make sure `CORS_ORIGINS` in `.env` includes
-   `https://acme-threads.myshopify.com`, then restart the backend.
-
-> Your dev store storefront is **password-protected** (dev stores can't go fully
-> public without a paid plan). That's fine — preview the storefront as the
-> logged-in owner via **Online Store → Themes → Preview**; the widget works there.
-
----
-
-## 9. (Optional) Test live order tools
-
-Order, tracking, and stock are resolved **live** at answer time — never from the
-index. To test:
-
-1. Add `read_orders` + `read_fulfillments` scopes to the custom app
-   (step 1.3) and **reinstall** to refresh the token.
-2. Create a test order in the dev store.
-3. Ask:
-
-```bash
-curl -N -X POST http://localhost:8000/chat -H 'Content-Type: application/json' \
-  -d '{"message":"where is my order #1001, email customer@example.com"}'
-```
-
-The bot verifies the email against the order before returning anything; a
-mismatch returns a uniform "couldn't verify" message with no data leak. Keep
-`RETURNS_ENABLED=false` unless you've granted return scopes and want to test
-writes.
-
----
-
-## Troubleshooting
-
-| Symptom | Fix |
-|---|---|
-| `/health` shows `"demo_mode": true` | `.env` still has `DEMO_MODE=true`, or you didn't pass `--env-file ../.env`. |
-| `401` on webhooks (`webhook_unverified`) | `SHOPIFY_WEBHOOK_SECRET` ≠ the app's **API secret key**. |
-| `403` / scope errors from Shopify | Missing scope; add it in the app's Configuration tab and **reinstall**. |
-| Admin API token lost | It's shown once — uninstall/reinstall the app to mint a new one. |
-| ngrok URL stopped working | Free URLs rotate on restart; re-run step 6 with the new URL. |
-| Catalog questions return nothing | Run the import (step 5); confirm products exist in the store and `read_products` is granted. |
-| Provider/auth error after `DEMO_MODE=false` | Set `GROQ_API_KEY` (or another provider key) and install `.[providers]`. |
-| `THROTTLED` errors in logs | Normal under load; the client backs off automatically. |
-| ngrok browser warning page | Add header `ngrok-skip-browser-warning: 1` when testing via curl, or use a paid ngrok domain. |
-
----
-
-## Quick reference: full env diff to go live
-
-```diff
-- DEMO_MODE=true
-+ DEMO_MODE=false
-
-  LLM_DEFAULT_PROVIDER=groq
-  GROQ_API_KEY=gsk_...                       # already set
-+ EMBEDDING_BACKEND=auto
-
-+ SHOPIFY_STORE_DOMAIN=acme-threads.myshopify.com
-+ SHOPIFY_ADMIN_API_TOKEN=shpat_...
-+ SHOPIFY_WEBHOOK_SECRET=...                 # API secret key
-  SHOPIFY_API_VERSION=2025-01
-
-+ CORS_ORIGINS=https://acme-threads.myshopify.com,http://localhost:5173
-```
+> Note: the catalog import and the running server must share the **same vector
+> store**, which is why Qdrant is started even in this mode. Skipping it would
+> import into a throwaway in-memory index the server can't see.
