@@ -100,7 +100,7 @@ A **FastAPI** backend exposes a streaming chat endpoint and admin APIs. Customer
 
 **Human handoff is a first-class flow, not a dead-end message** (see §8.1).
 
-**Custom Shopify app, not public.** Single store → no App Store review, simpler token auth, faster. We still honor OAuth scopes, webhook HMAC, and rate limits, so the path to a public app stays short.
+**Custom Shopify app via the Dev Dashboard, not public.** Single store → no App Store review, faster. Legacy in-admin custom apps were retired Jan 1, 2026, so the app is created in the **Shopify Dev Dashboard**. Authentication uses the **client-credentials grant**: we store a long-lived **Client ID + Client secret**, and the backend exchanges them for a short-lived (24h) Admin API access token that it caches and **auto-refreshes** — no static token, no manual rotation, no operator action. This is more secure (a leaked token expires within a day). We still honor scopes, webhook HMAC, and rate limits, so the path to a public app stays short. Note: client-credentials requires the app and store to be in the same Dev Dashboard organization.
 
 **Rate-limit discipline from day one.** All Shopify access goes through one client with token-bucket throttling, backoff on `429`/`THROTTLED`, and cost-aware GraphQL batching.
 
@@ -127,7 +127,7 @@ Build incrementally; each phase is shippable and independently testable. We conf
 - **Acceptance:** grounded, cited answers; reranking improves recall@k vs. baseline; no hallucinated policies; low-confidence routes to handoff; streaming + logging work.
 
 ### Phase 2 — Shopify catalog sync + product Q&A
-- Custom app setup, scopes, secure token storage.
+- Dev Dashboard app setup, scopes, client-credentials token exchange + auto-refresh (no static token).
 - Catalog ingestion (Admin GraphQL): titles, descriptions, materials, care, price, variants/sizes, colors, inventory metadata → chunked + tagged + indexed.
 - Webhook receivers (products/inventory/discounts) with HMAC → Arq re-index jobs.
 - **Configurable freshness model** (see §7): strategies, cadence, profiles.
@@ -247,6 +247,7 @@ Enforced via pre-commit + CI, not aspirational.
 ## 6. Security, privacy & compliance (first-class)
 
 - **Secrets** via env / PaaS secret manager only; `.env` git-ignored; `.env.example` documents every variable with no real values.
+- **Shopify auth:** Dev Dashboard **client-credentials grant** — only the Client ID/secret are stored; the 24h access token is fetched, cached, and auto-refreshed in code (never persisted long-term, never copied by an operator).
 - **Webhook authenticity:** verify Shopify HMAC on every webhook.
 - **PII handling:** identity verification (email + order #) before any order/PII or return action; PII redacted from logs and LLM traces.
 - **Data retention & rights:** configurable conversation retention window; **GDPR/CCPA deletion + export** endpoints; documented in `COMPLIANCE.md`.

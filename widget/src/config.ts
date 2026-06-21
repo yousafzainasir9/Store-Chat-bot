@@ -7,9 +7,9 @@ export function readConfig(): WidgetConfig {
     document.querySelector<HTMLScriptElement>("script[data-store-name]");
   const d = el?.dataset ?? {};
   return {
-    storeName: d.storeName || "our store",
+    storeName: d.storeName || "TrendEvoker",
     apiBase: (d.apiBase || "").replace(/\/$/, ""),
-    primary: d.primary || "#1f6feb",
+    primary: d.primary || "#8c1d2c",
     position: d.position === "left" ? "left" : "right",
     locale: d.locale || (navigator.language || "en").slice(0, 2),
   };

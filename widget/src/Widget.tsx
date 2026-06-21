@@ -131,9 +131,29 @@ export function Widget({ config }: Props) {
       ref={panelRef}
     >
       <div class="scw-header">
-        <div>
-          <h2>{config.storeName} · {tr("title")}</h2>
-          <div class="scw-disclosure">{tr("disclosure")}</div>
+        <div class="scw-brand">
+          <svg class="scw-mark" viewBox="0 0 100 100" aria-hidden="true">
+            <path
+              d="M6 44 C 34 28, 66 28, 94 44"
+              fill="none"
+              stroke="#fff"
+              stroke-width="6"
+              stroke-linecap="round"
+            />
+            <path
+              d="M30 38 C 50 30, 70 30, 80 46"
+              fill="none"
+              stroke="#fff"
+              stroke-width="4"
+              stroke-linecap="round"
+            />
+            <circle cx="34" cy="68" r="11" fill="#e0b43c" />
+            <circle cx="66" cy="68" r="11" fill="#e0b43c" />
+          </svg>
+          <div>
+            <h2>{config.storeName} · {tr("title")}</h2>
+            <div class="scw-disclosure">{tr("disclosure")}</div>
+          </div>
         </div>
         <button class="scw-close" aria-label={tr("close")} onClick={() => setOpen(false)}>
           ×

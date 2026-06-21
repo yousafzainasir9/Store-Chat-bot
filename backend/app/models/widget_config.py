@@ -20,7 +20,7 @@ class WidgetConfig:
     """Public widget branding/behavior settings."""
 
     store_name: str
-    primary_color: str = "#1f6feb"
+    primary_color: str = "#8c1d2c"  # TrendEvoker burgundy
     position: str = "right"  # "left" | "right"
     locale: str = "en"  # "en" | "es" | "fr"
     greeting: str = ""  # optional opening assistant message

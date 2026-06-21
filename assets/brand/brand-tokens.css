@@ -1,0 +1,20 @@
+/* TrendEvoker brand tokens.
+   Single source of truth for the palette. Import or copy these into any surface
+   (widget, admin, storefront theme) so colors stay consistent. */
+:root {
+  /* Core palette */
+  --te-burgundy: #8c1d2c; /* primary — script, hat, headers, buttons */
+  --te-burgundy-dark: #6f1622; /* hover / gradient end */
+  --te-gold: #e0b43c; /* accent — prices, highlights, earrings */
+  --te-gold-dark: #c79a2a;
+  --te-cream: #f6efd8; /* soft background / halo */
+  --te-ink: #2a1216; /* text on light */
+  --te-on-dark: #fff7ef; /* text on burgundy */
+
+  /* Semantic aliases */
+  --te-primary: var(--te-burgundy);
+  --te-primary-hover: var(--te-burgundy-dark);
+  --te-accent: var(--te-gold);
+  --te-surface: #ffffff;
+  --te-surface-soft: var(--te-cream);
+}

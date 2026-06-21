@@ -1,9 +1,10 @@
 """One-command catalog import for the live (non-demo) Shopify integration.
 
 Run this once after pointing ``.env`` at your real Shopify store
-(``DEMO_MODE=false`` + ``SHOPIFY_STORE_DOMAIN`` + ``SHOPIFY_ADMIN_API_TOKEN``).
-It seeds the knowledge base and pulls your whole product catalog into the
-search index via Shopify's Bulk Operations API.
+(``DEMO_MODE=false`` + ``SHOPIFY_STORE_DOMAIN`` + Dev Dashboard
+``SHOPIFY_CLIENT_ID``/``SHOPIFY_CLIENT_SECRET``, or a legacy
+``SHOPIFY_ADMIN_API_TOKEN``). It seeds the knowledge base and pulls your whole
+product catalog into the search index via Shopify's Bulk Operations API.
 
 Usage (from the ``backend`` directory):
 
@@ -33,14 +34,18 @@ async def _run() -> int:
         print(
             "DEMO_MODE is true — this script imports a REAL Shopify catalog.\n"
             "Set DEMO_MODE=false in .env (and SHOPIFY_STORE_DOMAIN + "
-            "SHOPIFY_ADMIN_API_TOKEN) first, then re-run.",
+            "SHOPIFY_CLIENT_ID/SHOPIFY_CLIENT_SECRET) first, then re-run.",
             file=sys.stderr,
         )
         return 1
 
-    if not settings.shopify_store_domain or not settings.shopify_admin_api_token:
+    has_oauth = bool(settings.shopify_client_id and settings.shopify_client_secret)
+    if not settings.shopify_store_domain or not (
+        has_oauth or settings.shopify_admin_api_token
+    ):
         print(
-            "Missing Shopify credentials. Set SHOPIFY_STORE_DOMAIN and "
+            "Missing Shopify credentials. Set SHOPIFY_STORE_DOMAIN plus either "
+            "SHOPIFY_CLIENT_ID/SHOPIFY_CLIENT_SECRET (preferred) or "
             "SHOPIFY_ADMIN_API_TOKEN in .env, then re-run.",
             file=sys.stderr,
         )

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 580" role="img" aria-label="TrendEvoker">
+  <title>TrendEvoker</title>
+  <!-- Brand palette: burgundy #8C1D2C, gold #E0B43C, cream #F6EFD8 -->
+  <defs>
+    <style>
+      .burg { fill: none; stroke: #8C1D2C; }
+      .burgF { fill: #8C1D2C; }
+      .gold { fill: #E0B43C; }
+      .cream { fill: #F6EFD8; }
+    </style>
+  </defs>
+
+  <!-- Head / cream halo -->
+  <circle class="cream" cx="500" cy="175" r="160"/>
+
+  <!-- Hat: wide sweeping brim (two long burgundy strokes) -->
+  <path class="burg" stroke-width="9" stroke-linecap="round"
+        d="M12 158 C 240 70, 470 96, 612 150 C 705 186, 690 246, 612 250"/>
+  <path class="burg" stroke-width="9" stroke-linecap="round"
+        d="M360 232 C 520 196, 760 150, 980 150 C 760 250, 560 300, 720 372"/>
+  <!-- Hat crown accent -->
+  <path class="burg" stroke-width="7" stroke-linecap="round"
+        d="M470 120 C 540 92, 640 104, 660 150"/>
+
+  <!-- Lips -->
+  <path class="burgF" d="M452 322 C 476 312, 524 312, 548 322 C 524 346, 476 346, 452 322 Z"/>
+  <path class="burg" stroke-width="3" d="M452 322 C 488 332, 512 332, 548 322"/>
+
+  <!-- Earrings: thin stem + burgundy disc behind a gold disc -->
+  <g>
+    <line class="burg" stroke-width="6" x1="318" y1="250" x2="318" y2="300"/>
+    <circle class="burgF" cx="330" cy="368" r="62"/>
+    <circle class="gold" cx="312" cy="352" r="50"/>
+  </g>
+  <g>
+    <line class="burg" stroke-width="6" x1="682" y1="250" x2="682" y2="300"/>
+    <circle class="burgF" cx="670" cy="368" r="62"/>
+    <circle class="gold" cx="688" cy="352" r="50"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="500" y="540" text-anchor="middle"
+        font-family="'Brush Script MT','Segoe Script','Snell Roundhand',cursive"
+        font-size="118" font-style="italic" class="burgF">TrendEvoker</text>
+</svg>

@@ -27,22 +27,25 @@ production should use managed instances.)
 
 ## 2. Create the Shopify custom app
 
-Follow **[SHOPIFY_SETUP.md](./SHOPIFY_SETUP.md)** in full. Summary:
+Follow **[SHOPIFY_SETUP.md](./SHOPIFY_SETUP.md)** in full. Summary (legacy
+in-admin custom apps were retired 2026-01-01 — use the **Dev Dashboard**):
 
-1. Shopify admin → **Settings → Apps and sales channels → Develop apps → Create
-   an app**.
-2. Grant Admin API scopes (least privilege):
+1. **<https://dev.shopify.com/dashboard>** → **Create app** → name it, **Create**.
+2. **Configure Admin API scopes** (least privilege):
    - catalog: `read_products`, `read_inventory`
    - orders (Phase 3): `read_orders`, `read_fulfillments` (+ return scopes only
      if you enable returns).
-3. Install the app; copy the **Admin API access token** (`shpat_…`).
-4. Copy the app's **API secret key** — this is your webhook HMAC secret.
+3. **Install** the app, then open **Settings** and copy the **Client ID** and
+   **Client secret**. (No `shpat_…` token — the app auto-fetches a 24h token via
+   the client-credentials grant.)
+4. The **Client secret** also serves as the webhook HMAC secret.
 
 You'll set:
 ```
 SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
-SHOPIFY_ADMIN_API_TOKEN=shpat_xxx
-SHOPIFY_WEBHOOK_SECRET=<app API secret key>
+SHOPIFY_CLIENT_ID=<client id>
+SHOPIFY_CLIENT_SECRET=<client secret>
+SHOPIFY_WEBHOOK_SECRET=<client secret>
 ```
 
 ---
@@ -68,10 +71,11 @@ REDIS_URL=redis://host:6379/0
 QDRANT_URL=https://your-qdrant:6333
 QDRANT_API_KEY=...
 
-# Shopify
+# Shopify (Dev Dashboard client-credentials grant)
 SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
-SHOPIFY_ADMIN_API_TOKEN=shpat_...
-SHOPIFY_WEBHOOK_SECRET=...
+SHOPIFY_CLIENT_ID=...
+SHOPIFY_CLIENT_SECRET=...
+SHOPIFY_WEBHOOK_SECRET=...              # = the app's Client secret
 
 # Security / access
 ADMIN_API_KEY=<long-random-string>     # REQUIRED in production (startup fails without it)
@@ -127,11 +131,25 @@ After the backend is live with real Shopify credentials:
    `products/create`, `products/update`, `products/delete`,
    `inventory_levels/update`. Each is HMAC-verified with `SHOPIFY_WEBHOOK_SECRET`.
 
-Example webhook registration (Admin GraphQL):
+Easiest: run the bundled helper, which uses the same client-credentials auth as
+the app:
 
 ```bash
+python -m scripts.register_webhooks
+```
+
+Or, by hand with curl — first exchange your Client ID/secret for a short-lived
+token (the same call the app makes), then register the webhook:
+
+```bash
+ACCESS_TOKEN=$(curl -s -X POST \
+  "https://$SHOPIFY_STORE_DOMAIN/admin/oauth/access_token" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=$SHOPIFY_CLIENT_ID" \
+  -d "client_secret=$SHOPIFY_CLIENT_SECRET" | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+
 curl -X POST "https://$SHOPIFY_STORE_DOMAIN/admin/api/2025-01/graphql.json" \
-  -H "X-Shopify-Access-Token: $SHOPIFY_ADMIN_API_TOKEN" \
+  -H "X-Shopify-Access-Token: $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"query":"mutation { webhookSubscriptionCreate(topic: PRODUCTS_UPDATE, webhookSubscription: { callbackUrl: \"https://api.yourdomain.com/webhooks/shopify\", format: JSON }) { userErrors { message } webhookSubscription { id } } }"}'
 ```

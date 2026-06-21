@@ -46,26 +46,32 @@ there, one line at a time, pressing Enter after each.
 
 ---
 
-## Part A — Get your two Shopify keys
+## Part A — Get your Shopify keys
 
 The chatbot needs permission to read your store. You grant it by making a
-**custom app** inside Shopify. This is just clicking through a settings page.
+**custom app** in the Shopify **Dev Dashboard**. This is just clicking through
+a settings page.
 
-1. Go to **<https://admin.shopify.com/store/acme-threads/settings/apps/development>**.
-2. If you see a button **Allow custom app development**, click it (and confirm).
-3. Click **Create an app** → name it `Support Chatbot` → **Create app**.
-4. Click the **Configuration** tab → under *Admin API integration* click
-   **Configure**. Tick these boxes, then **Save**:
+> **Why not the old "Develop apps" page?** As of **2026-01-01** Shopify retired
+> legacy in-admin custom apps — that page now shows a deprecation banner and a
+> disabled "legacy custom app" button. New custom apps are created in the Dev
+> Dashboard, and they hand you a **Client ID + Client secret** instead of a
+> one-time `shpat_…` token. You never copy or refresh a token by hand — the
+> chatbot does that for you.
+
+1. Go to **<https://dev.shopify.com/dashboard>** (or click **Build apps in Dev
+   Dashboard** from your store's App development page).
+2. Click **Create app** → name it `Support Chatbot` → **Create**.
+3. Open the app → **Configure Admin API scopes**. Tick these, then **Save**:
    - `read_products`
    - `read_inventory`
-5. Click the **API credentials** tab → **Install app** → **Install**.
-6. On that same page, copy your **two keys** somewhere safe for a minute:
-   - **Admin API access token** — click **Reveal token once**. It starts with
-     `shpat_`. ⚠️ You can only see it **once**, so copy it now.
-   - **API secret key** — copy this too.
+4. **Install** the app on your store (`acme-threads`).
+5. Open the app's **Settings** and copy your **two keys** somewhere safe:
+   - **Client ID**
+   - **Client secret**
 
-✅ **What you should see:** an "Admin API access token" beginning `shpat_…` and
-an "API secret key". You now have both keys.
+✅ **What you should see:** a **Client ID** and a **Client secret**. There is no
+`shpat_…` token to copy — that's expected with the Dev Dashboard flow.
 
 ---
 
@@ -89,8 +95,9 @@ EMBEDDING_BACKEND=auto
 
 # Your Shopify store and the two keys from Part A:
 SHOPIFY_STORE_DOMAIN=acme-threads.myshopify.com
-SHOPIFY_ADMIN_API_TOKEN=shpat_...     # paste the Admin API access token
-SHOPIFY_WEBHOOK_SECRET=...            # paste the API secret key
+SHOPIFY_CLIENT_ID=...                 # paste the Client ID
+SHOPIFY_CLIENT_SECRET=...             # paste the Client secret
+SHOPIFY_WEBHOOK_SECRET=...            # paste the Client secret again (used to verify webhooks)
 SHOPIFY_API_VERSION=2025-01
 
 # Lets the chat widget load on your storefront:
@@ -102,8 +109,8 @@ CORS_ORIGINS=https://acme-threads.myshopify.com,http://localhost:5173
 > You do **not** need to touch the database or Qdrant lines — Docker sets those
 > up for you automatically.
 
-✅ **What you should see:** the file saved with `DEMO_MODE=false` and your two
-`shpat_…` / secret values filled in. No line should still say `...`.
+✅ **What you should see:** the file saved with `DEMO_MODE=false` and your
+Client ID / Client secret values filled in. No line should still say `...`.
 
 ---
 

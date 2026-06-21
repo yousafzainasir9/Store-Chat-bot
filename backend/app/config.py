@@ -136,6 +136,14 @@ class Settings(BaseSettings):
 
     # ---- Shopify (Phase 2+) ----
     shopify_store_domain: str | None = None
+    # Dev Dashboard client-credentials grant (preferred). Legacy in-admin custom
+    # apps were retired 2026-01-01. Only these long-lived credentials are stored;
+    # the 24h Admin API token is fetched and auto-refreshed at runtime, so no
+    # operator ever copies or rotates a token by hand.
+    shopify_client_id: str | None = None
+    shopify_client_secret: str | None = None
+    # Legacy static Admin API token. Kept only as a fallback for stores still on
+    # an existing legacy custom app; prefer the client-credentials pair above.
     shopify_admin_api_token: str | None = None
     shopify_storefront_api_token: str | None = None
     shopify_api_version: str = "2025-01"
@@ -158,7 +166,7 @@ class Settings(BaseSettings):
     catalog_import_concurrency: int = Field(default=4, ge=1, le=32)
 
     # ---- RAG / knowledge base (Phase 1) ----
-    store_name: str = "our store"
+    store_name: str = "TrendEvoker"
     seed_dir: str = "seed"
     embedding_dimension: int = 512  # offline hashing embedder; providers set their own
     rag_candidate_k: int = Field(default=20, ge=1)

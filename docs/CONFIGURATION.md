@@ -108,10 +108,12 @@ Notes:
 | Variable | Default | Notes |
 |---|---|---|
 | `SHOPIFY_STORE_DOMAIN` | — | `your-store.myshopify.com`. |
-| `SHOPIFY_ADMIN_API_TOKEN` | — | Custom-app Admin API token. |
+| `SHOPIFY_CLIENT_ID` | — | Dev Dashboard app Client ID (preferred auth). |
+| `SHOPIFY_CLIENT_SECRET` | — | Dev Dashboard app Client secret. Exchanged for a 24h token at runtime; also the webhook HMAC secret. |
+| `SHOPIFY_ADMIN_API_TOKEN` | — | Legacy static token (`shpat_…`). Fallback only; client-credentials takes precedence. |
 | `SHOPIFY_STOREFRONT_API_TOKEN` | — | Optional. |
 | `SHOPIFY_API_VERSION` | `2025-01` | |
-| `SHOPIFY_WEBHOOK_SECRET` | — | Verifies webhook HMAC. |
+| `SHOPIFY_WEBHOOK_SECRET` | — | Verifies webhook HMAC (set to the Client secret). |
 
 ## Catalog freshness (Phase 2, plan §7)
 

@@ -4,6 +4,11 @@ A single throttled entry point for all Admin API access. ``httpx`` is imported
 lazily so the offline test suite (which uses :class:`FakeShopifyClient`) needs no
 network stack. On ``THROTTLED`` errors it backs off using the server's reported
 cost state; on transient HTTP errors it retries with exponential backoff.
+
+Authentication is delegated to a :class:`~app.shopify.auth.TokenProvider`: the
+Dev Dashboard client-credentials flow (preferred) or a static token (legacy
+fallback). The current token is read per request, so automatic refreshes are
+transparent to callers.
 """
 
 from __future__ import annotations
@@ -12,6 +17,7 @@ import asyncio
 from typing import Any, Protocol
 
 from app.observability.logging import get_logger
+from app.shopify.auth import StaticTokenProvider, TokenProvider
 from app.shopify.throttle import CostThrottle
 
 _log = get_logger("shopify.client")
@@ -33,22 +39,37 @@ class AdminGraphQLClient(ShopifyClient):
     def __init__(
         self,
         store_domain: str,
-        access_token: str,
+        access_token: str | None = None,
         *,
+        token_provider: TokenProvider | None = None,
         api_version: str = "2025-01",
         max_retries: int = 5,
         throttle: CostThrottle | None = None,
     ) -> None:
-        if not store_domain or not access_token:
-            raise ValueError("store_domain and access_token are required")
+        """Create a client.
+
+        Provide exactly one credential source: either a ``token_provider`` (the
+        Dev Dashboard client-credentials flow, preferred) or a static
+        ``access_token`` (legacy custom apps, wrapped in a static provider).
+        """
+        if not store_domain:
+            raise ValueError("store_domain is required")
+        if token_provider is None:
+            if not access_token:
+                raise ValueError("either token_provider or access_token is required")
+            token_provider = StaticTokenProvider(access_token)
         self._endpoint = f"https://{store_domain}/admin/api/{api_version}/graphql.json"
-        self._headers = {
-            "X-Shopify-Access-Token": access_token,
-            "Content-Type": "application/json",
-        }
+        self._token_provider = token_provider
         self._max_retries = max_retries
         self._throttle = throttle or CostThrottle()
         self._client: object | None = None
+
+    async def _auth_headers(self) -> dict[str, str]:
+        """Build request headers with a current (possibly just-refreshed) token."""
+        return {
+            "X-Shopify-Access-Token": await self._token_provider.get_token(),
+            "Content-Type": "application/json",
+        }
 
     def _get_client(self) -> object:
         if self._client is None:
@@ -61,6 +82,9 @@ class AdminGraphQLClient(ShopifyClient):
         if self._client is not None:
             await self._client.aclose()  # type: ignore[attr-defined]
             self._client = None
+        aclose = getattr(self._token_provider, "aclose", None)
+        if aclose is not None:
+            await aclose()
 
     async def graphql(
         self, query: str, variables: dict[str, Any] | None = None, *, estimated_cost: float = 50.0
@@ -68,13 +92,14 @@ class AdminGraphQLClient(ShopifyClient):
         """Execute a GraphQL operation, respecting cost limits and retries."""
         client = self._get_client()
         payload = {"query": query, "variables": variables or {}}
+        headers = await self._auth_headers()
 
         attempt = 0
         while True:
             await self._throttle.acquire(estimated_cost)
             try:
                 resp = await client.post(  # type: ignore[attr-defined]
-                    self._endpoint, json=payload, headers=self._headers
+                    self._endpoint, json=payload, headers=headers
                 )
             except Exception as exc:  # network error -> retry with backoff
                 attempt += 1

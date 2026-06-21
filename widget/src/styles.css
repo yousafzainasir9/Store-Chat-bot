@@ -1,9 +1,12 @@
 /* All styles are scoped under .scw-root and themed via CSS variables so the
    widget never leaks into or inherits from the host storefront theme. */
 .scw-root {
-  --scw-primary: #1f6feb;
+  --scw-primary: #8c1d2c; /* TrendEvoker burgundy (overridable via data-primary / server config) */
+  --scw-primary-dark: #6f1622;
+  --scw-accent: #e0b43c; /* TrendEvoker gold — prices, links, highlights */
   --scw-bg: #ffffff;
-  --scw-fg: #1a1a1a;
+  --scw-surface-soft: #f6efd8; /* cream — assistant bubble */
+  --scw-fg: #2a1216;
   --scw-muted: #6b7280;
   --scw-bubble-user: var(--scw-primary);
   --scw-radius: 14px;
@@ -33,9 +36,13 @@
   box-shadow: var(--scw-shadow); overflow: hidden;
 }
 .scw-header {
-  background: var(--scw-primary); color: #fff; padding: 14px 16px;
+  background: linear-gradient(135deg, var(--scw-primary), var(--scw-primary-dark));
+  color: #fff; padding: 14px 16px;
+  border-bottom: 3px solid var(--scw-accent);
   display: flex; align-items: center; justify-content: space-between;
 }
+.scw-brand { display: flex; align-items: center; gap: 10px; }
+.scw-brand .scw-mark { flex: 0 0 auto; width: 30px; height: 30px; }
 .scw-header h2 { margin: 0; font-size: 16px; }
 .scw-disclosure { font-size: 12px; opacity: 0.9; margin-top: 2px; }
 .scw-close { background: transparent; border: none; color: #fff; cursor: pointer; font-size: 20px; line-height: 1; }
@@ -44,7 +51,7 @@
 .scw-log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .scw-msg { max-width: 84%; padding: 10px 12px; border-radius: 12px; line-height: 1.4; white-space: pre-wrap; word-wrap: break-word; }
 .scw-msg.user { align-self: flex-end; background: var(--scw-bubble-user); color: #fff; border-bottom-right-radius: 4px; }
-.scw-msg.assistant { align-self: flex-start; background: #f1f3f5; color: var(--scw-fg); border-bottom-left-radius: 4px; }
+.scw-msg.assistant { align-self: flex-start; background: var(--scw-surface-soft); color: var(--scw-fg); border-bottom-left-radius: 4px; }
 .scw-msg.handoff { background: #fff4e5; border: 1px solid #ffd9a8; }
 .scw-sources { font-size: 12px; color: var(--scw-muted); margin-top: 6px; }
 .scw-products { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }

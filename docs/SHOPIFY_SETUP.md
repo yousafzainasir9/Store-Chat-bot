@@ -1,57 +1,88 @@
 # Shopify integration setup (Phase 2)
 
 This guide covers connecting the chatbot to a Shopify store for catalog sync and
-(Phase 3) live order/stock data. It is written for a **custom app** on a single
-store — no App Store review, simpler token auth, faster to ship. The code honors
-OAuth scopes, webhook HMAC, and rate limits, so promoting to a public app later
-is a short path.
+(Phase 3) live order/stock data. It is written for a **custom app created in the
+Shopify Dev Dashboard** on a single store — no App Store review, faster to ship.
+The code honors scopes, webhook HMAC, and rate limits, so promoting to a public
+app later is a short path.
+
+> **Heads up — legacy custom apps are gone.** As of **2026-01-01** merchants can
+> no longer create legacy in-admin custom apps. New custom apps are created in the
+> **Dev Dashboard** (https://dev.shopify.com/dashboard) and authenticate with the
+> **client-credentials grant** instead of a copy-paste static token. If the admin
+> page shows "Build apps in Dev Dashboard" and a disabled legacy section, that is
+> expected — follow the steps below.
 
 ## Why a custom app (not a public app)
 
-| | Custom app | Public app |
+| | Custom app (Dev Dashboard) | Public app |
 |---|---|---|
 | Review | None | Shopify App Store review |
-| Auth | Admin API access token | Full OAuth install flow |
+| Auth | Client-credentials grant (auto-refreshed token) | Full OAuth install flow |
 | Audience | This one store | Many merchants |
 | Time to ship | Fast | Slower |
 
-We target a single store, so a custom app is the right call. The integration is
-written behind one interface (`ShopifyClient`) so nothing store-specific leaks
-into the rest of the app.
+We target a single store, so a Dev Dashboard custom app is the right call. The
+integration is written behind one interface (`ShopifyClient`) so nothing
+store-specific leaks into the rest of the app.
 
-## 1. Create the custom app
+## How authentication works (read this once)
 
-1. In Shopify admin: **Settings → Apps and sales channels → Develop apps → Create an app**.
-2. Name it (e.g. "Support Chatbot") and create.
+You store **two long-lived values**: the **Client ID** and **Client secret**.
+You do **not** store an access token. At runtime the backend calls Shopify's token
+endpoint with those credentials, receives a short-lived (~24h) access token,
+caches it, and refreshes it automatically just before it expires
+(`app/shopify/auth.py::ClientCredentialsTokenProvider`). No daily action, no
+manual rotation. A leaked token self-expires within a day.
+
+## 1. Create the app in the Dev Dashboard
+
+1. Go to **https://dev.shopify.com/dashboard** (or click **Build apps in Dev
+   Dashboard** from the store's App development page).
+2. **Create app** → name it `Support Chatbot` → Create.
 
 ## 2. Configure Admin API scopes (least privilege, per phase)
 
-Grant only what each phase needs:
+In the app, open **Configure Admin API scopes** and grant only what each phase needs:
 
 | Phase | Scopes |
 |---|---|
 | 2 — catalog sync | `read_products`, `read_inventory` |
 | 3 — orders & returns | `read_orders`, `read_fulfillments`, `read_returns` (+ return write scopes only when initiating returns) |
 
-Do **not** grant write or customer-PII scopes until the phase that needs them.
+Do **not** grant write or customer-PII scopes until the phase that needs them. Save.
 
-## 3. Install + capture the access token
+## 3. Install + copy the Client ID/secret
 
-Install the app on the store, then copy the **Admin API access token**
-(`shpat_...`). Set it as `SHOPIFY_ADMIN_API_TOKEN` — never commit it.
+1. **Install** the app on your store.
+2. Open the app's **Settings** and copy the **Client ID** and **Client secret**.
+   Set them as `SHOPIFY_CLIENT_ID` / `SHOPIFY_CLIENT_SECRET` — never commit them.
 
-If you use the Storefront API later, also generate a Storefront API token and set
-`SHOPIFY_STOREFRONT_API_TOKEN`.
+There is no token to copy. If a third-party tool insists on a `shpat_...` token,
+it expects the old flow; this backend uses the client-credentials grant instead.
 
 ## 4. Environment
 
 ```bash
 SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
-SHOPIFY_ADMIN_API_TOKEN=shpat_xxx
+SHOPIFY_CLIENT_ID=your-client-id
+SHOPIFY_CLIENT_SECRET=your-client-secret
 SHOPIFY_API_VERSION=2025-01
 SHOPIFY_WEBHOOK_SECRET=xxx        # used to verify webhook HMAC
 DEMO_MODE=false                   # switch off the synthetic catalog
 ```
+
+> Legacy fallback: a store still on an existing legacy custom app can instead set
+> `SHOPIFY_ADMIN_API_TOKEN=shpat_...`. The client-credentials pair takes
+> precedence when both are present.
+
+### Troubleshooting `shop_not_permitted`
+
+`Oauth error shop_not_permitted` means the app and the store are not in the same
+Dev Dashboard **organization**. In the Dev Dashboard, open **Dev stores** and
+confirm your store is listed; if it was created from the Shopify admin rather than
+the Dev Dashboard, add/link it to the same org. Also confirm `SHOPIFY_STORE_DOMAIN`
+matches the store's `*.myshopify.com` exactly.
 
 With `DEMO_MODE=true` (default), the app uses a synthetic catalog and never
 contacts Shopify — useful for development and CI.

@@ -1,8 +1,11 @@
 """Register the Shopify webhooks that keep the catalog index fresh.
 
 Points Shopify at ``<PUBLIC_URL>/webhooks/shopify`` for the product and
-inventory topics the chatbot cares about. Reads the store domain, admin token,
-and API version from ``.env``; takes the public URL (your ngrok URL) as the one
+inventory topics the chatbot cares about. Reads the store domain and API version
+from ``.env`` and obtains an Admin API token the same way the app does:
+the Dev Dashboard client-credentials grant (``SHOPIFY_CLIENT_ID`` /
+``SHOPIFY_CLIENT_SECRET``) when present, otherwise a legacy
+``SHOPIFY_ADMIN_API_TOKEN``. Takes the public URL (your ngrok URL) as the one
 argument.
 
 Usage (from the ``backend`` directory):
@@ -47,6 +50,31 @@ mutation($topic: WebhookSubscriptionTopic!, $url: URL!) {
 """
 
 
+def _resolve_token(settings: object, *, has_oauth: bool) -> str:
+    """Return an Admin API token: client-credentials exchange, or the static token.
+
+    Mirrors the app's runtime auth so this script needs no separate credentials.
+    """
+    if not has_oauth:
+        return settings.shopify_admin_api_token  # type: ignore[attr-defined,return-value]
+    with httpx.Client(timeout=30) as client:
+        resp = client.post(
+            f"https://{settings.shopify_store_domain}/admin/oauth/access_token",  # type: ignore[attr-defined]
+            data={
+                "grant_type": "client_credentials",
+                "client_id": settings.shopify_client_id,  # type: ignore[attr-defined]
+                "client_secret": settings.shopify_client_secret,  # type: ignore[attr-defined]
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        resp.raise_for_status()
+        token = resp.json().get("access_token")
+    if not token:
+        print("Token exchange returned no access_token.", file=sys.stderr)
+        raise SystemExit(1)
+    return str(token)
+
+
 def main() -> None:
     if len(sys.argv) != 2 or not sys.argv[1].startswith("https://"):
         print(
@@ -60,20 +88,25 @@ def main() -> None:
     callback = f"{public_url}/webhooks/shopify"
     settings = get_settings()
 
-    if not settings.shopify_store_domain or not settings.shopify_admin_api_token:
+    has_oauth = bool(settings.shopify_client_id and settings.shopify_client_secret)
+    if not settings.shopify_store_domain or not (
+        has_oauth or settings.shopify_admin_api_token
+    ):
         print(
-            "Missing Shopify credentials. Set SHOPIFY_STORE_DOMAIN and "
+            "Missing Shopify credentials. Set SHOPIFY_STORE_DOMAIN plus either "
+            "SHOPIFY_CLIENT_ID/SHOPIFY_CLIENT_SECRET (preferred) or "
             "SHOPIFY_ADMIN_API_TOKEN in .env, then re-run.",
             file=sys.stderr,
         )
         raise SystemExit(1)
 
+    access_token = _resolve_token(settings, has_oauth=has_oauth)
     endpoint = (
         f"https://{settings.shopify_store_domain}"
         f"/admin/api/{settings.shopify_api_version}/graphql.json"
     )
     headers = {
-        "X-Shopify-Access-Token": settings.shopify_admin_api_token,
+        "X-Shopify-Access-Token": access_token,
         "Content-Type": "application/json",
     }
 

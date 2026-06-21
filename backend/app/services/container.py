@@ -169,12 +169,34 @@ def _build_repository(settings: Settings) -> ConversationRepository:
 
 
 def _build_shopify_client(settings: Settings) -> ShopifyClient:
-    """Fake client offline; the throttled Admin GraphQL client when credentials exist."""
-    if settings.demo_mode or not (
-        settings.shopify_store_domain and settings.shopify_admin_api_token
+    """Fake client offline; the throttled Admin GraphQL client when credentials exist.
+
+    Credential precedence: Dev Dashboard client-credentials (preferred, auto-
+    refreshing 24h token) → legacy static Admin API token (fallback) → fake.
+    """
+    has_oauth = bool(settings.shopify_client_id and settings.shopify_client_secret)
+    has_static = bool(settings.shopify_admin_api_token)
+    if settings.demo_mode or not settings.shopify_store_domain or not (
+        has_oauth or has_static
     ):
         return FakeShopifyClient(n_products=_DEMO_CATALOG_SIZE)
+
     from app.shopify.client import AdminGraphQLClient  # lazy import
+
+    if has_oauth:
+        from app.shopify.auth import ClientCredentialsTokenProvider  # lazy import
+
+        token_provider = ClientCredentialsTokenProvider(
+            settings.shopify_store_domain,
+            settings.shopify_client_id,  # type: ignore[arg-type]
+            settings.shopify_client_secret,  # type: ignore[arg-type]
+        )
+        return AdminGraphQLClient(
+            settings.shopify_store_domain,
+            token_provider=token_provider,
+            api_version=settings.shopify_api_version,
+            max_retries=settings.webhook_retry_max,
+        )
 
     return AdminGraphQLClient(
         settings.shopify_store_domain,
